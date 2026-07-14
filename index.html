@@ -376,6 +376,7 @@ const state = {service:null, barber:null, date:null, slotIso:null, time:null, na
 let step = 0;
 let SERVICES=[], BARBERS=[], CLOSURES=[], TIMEOFF=[];
 let dateList=[], views=[];
+let lastDatesBarber=null, slotReq=0; const slotCache=new Map();
 
 function dateKey(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
 function fmtDur(m){ return m>=60 ? `${Math.floor(m/60)}h${m%60?String(m%60).padStart(2,'0'):''}` : `${m}min`; }
@@ -456,7 +457,7 @@ function go(n){
   if(state.service) el('footPrice').innerHTML = price(state.service) + (n===4 ? `<small> a pagar na barbearia</small>` : ``);
   const labels={1:'Escolher profissional',2:'Ver horários',3:'Continuar',4:'Reservar horário'};
   el('next').innerHTML = `${labels[n]||'Continuar'} <span class="arr">→</span>`;
-  if(n===3) renderDates();
+  if(n===3) ensureDates();
   updateGate();
 }
 async function next(){
@@ -525,38 +526,63 @@ function renderDates(){
   pickDate(first>=0?first:0);
 }
 function pickDate(i){
-  state.date=dateList[i]; state.slotIso=null; state.time=null;
+  const same = state.date && dateKey(dateList[i])===dateKey(state.date);
+  state.date=dateList[i];
+  if(!same){ state.slotIso=null; state.time=null; }
+  document.querySelectorAll('#dates .day').forEach(x=>x.classList.toggle('sel',+x.dataset.i===i));
+  renderSlots(i); updateGate();
+}
+function ensureDates(){
+  const bid=state.barber?String(state.barber.id):'';
+  if(bid!==lastDatesBarber || !dateList.length){ lastDatesBarber=bid; renderDates(); return; }
+  const i=state.date? dateList.findIndex(dd=>dateKey(dd)===dateKey(state.date)) : -1;
+  if(i<0){ renderDates(); return; }
   document.querySelectorAll('#dates .day').forEach(x=>x.classList.toggle('sel',+x.dataset.i===i));
   renderSlots(i); updateGate();
 }
 
 async function renderSlots(i){
-  const d=dateList[i];
+  const d=dateList[i]; const myReq=++slotReq;
   const r=dayReasonFor(d);
   if(r){
+    el('slotArea').style.opacity='1';
     el('slotArea').innerHTML=`<div class="closed-note">
       <div class="lk"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
       <b>${r.kind==='shop'?'Fechado':'Indisponível'}</b><span>${r.txt}</span><small>Escolha outro dia disponível acima.</small></div>`;
     return;
   }
-  el('slotArea').innerHTML=`<div class="closed-note" style="border-style:solid"><b>Carregando horários…</b></div>`;
   const dk=dateKey(d);
   const targets = state.barber.any ? BARBERS.filter(b=>!barberOffByRow(b,d)) : [state.barber];
-  const results = await Promise.all(targets.map(b=>
-    sb.rpc('get_available_slots',{p_barber_id:b.id,p_service_id:state.service.id,p_date:dk})
-  ));
-  const set=new Map(); // 'HH:MM' -> iso
-  results.forEach(res=>{ (res.data||[]).forEach(row=>{ const t=hhmm(row.slot); if(!set.has(t)) set.set(t,row.slot); }); });
+  const ck = targets.map(b=>b.id).join(',')+'|'+state.service.id+'|'+dk;
+  let set; const cached=slotCache.get(ck);
+  if(cached && Date.now()-cached.at<45000){ set=cached.set; }
+  else{
+    if(!el('slotArea').querySelector('.slot'))
+      el('slotArea').innerHTML=`<div class="closed-note" style="border-style:solid"><b>Carregando horários…</b></div>`;
+    else el('slotArea').style.opacity='.45';
+    const results = await Promise.all(targets.map(b=>
+      sb.rpc('get_available_slots',{p_barber_id:b.id,p_service_id:state.service.id,p_date:dk})
+    ));
+    if(myReq!==slotReq) return;               // resposta antiga: descarta
+    set=new Map();
+    results.forEach(res=>{ (res.data||[]).forEach(row=>{ const t=hhmm(row.slot); if(!set.has(t)) set.set(t,row.slot); }); });
+    slotCache.set(ck,{at:Date.now(),set});
+  }
+  if(myReq!==slotReq) return;
+  el('slotArea').style.opacity='1';
   const times=[...set.keys()].sort();
   if(!times.length){
     el('slotArea').innerHTML=`<div class="closed-note"><b>Sem horários</b><span>Este dia já está cheio.</span><small>Escolha outro dia acima.</small></div>`;
-    return;
+    state.time=null; state.slotIso=null; updateGate(); return;
   }
   window.__slotmap=set;
+  if(state.time && set.has(state.time)) state.slotIso=set.get(state.time);
+  else { state.time=null; state.slotIso=null; }
   const am=times.filter(t=>+t.split(':')[0]<12), pm=times.filter(t=>+t.split(':')[0]>=12);
-  const cell=t=>`<button class="slot" onclick="pickTime('${t}')" data-t="${t}">${t}</button>`;
+  const cell=t=>`<button class="slot ${t===state.time?'sel':''}" onclick="pickTime('${t}')" data-t="${t}">${t}</button>`;
   el('slotArea').innerHTML=(am.length?`<div class="slot-head">Manhã</div><div class="slots">${am.map(cell).join('')}</div>`:'')+
                            (pm.length?`<div class="slot-head">Tarde</div><div class="slots">${pm.map(cell).join('')}</div>`:'');
+  updateGate();
 }
 function pickTime(t){
   state.time=t; state.slotIso=window.__slotmap.get(t);
@@ -589,9 +615,11 @@ async function doBook(){
     el('next').disabled=false;
     const msg=(error.message||'').includes('ocupado')?'Esse horário acabou de ser ocupado. Escolha outro.':'Não foi possível reservar. Tente novamente.';
     alert(msg);
+    slotCache.clear(); state.time=null; state.slotIso=null;
     go(3);
     return;
   }
+  slotCache.clear();
   state.bookedBarber = BARBERS.find(b=>b.id===data.barber_id)?.name || '—';
   buildTicket(data);
   go(5); el('foot').classList.add('hide');
@@ -642,6 +670,7 @@ function sendWpp(){
 function reset(){
   Object.assign(state,{service:null,barber:null,date:null,slotIso:null,time:null,name:'',phone:''});
   el('nm').value='';el('ph').value='';
+  lastDatesBarber=null; dateList=[]; slotCache.clear();
   renderServices();renderBarbers();
   el('home').classList.add('active');
   el('bar').style.display='none';el('progress').style.display='none';

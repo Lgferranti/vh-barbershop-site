@@ -444,18 +444,24 @@ async function setStatus(id,st){
   const a=DAY_APPTS.find(x=>x.id===id); if(a)a.status=st;
   paintAgenda();
 }
+let agReq=0;
 async function renderAgenda(){
+  const myReq=++agReq;
   const d=dateFor(sel);
   el('daylab').innerHTML=(sel===0?'<b>Hoje</b> · ':'')+`${DOW_L[d.getDay()]}, ${d.getDate()} de ${MON_L[d.getMonth()]}`;
   const reason=closureReason(d);
   el('dayAction').innerHTML=renderDayAction(d,reason,d.getDay()===0)+offInfo(d);
   if(reason){el('stCount').textContent='0';el('stRev').textContent=fmt(0);el('stDone').textContent='0';
+    el('list').style.opacity='1';
     el('list').innerHTML=emptyBox('×','Fechado',reason);return;}
-  el('list').innerHTML=`<div class="empty"><p>Carregando…</p></div>`;
+  if(!el('list').querySelector('.appt')) el('list').innerHTML=`<div class="empty"><p>Carregando…</p></div>`;
+  else el('list').style.opacity='.45';
   const [a,b]=dayBounds(d);
   const {data,error}=await sb.from('appointments')
     .select('id,starts_at,ends_at,status,customer_name,customer_phone,barber_id,services(name,price_cents,duration_min)')
     .gte('starts_at',a).lte('starts_at',b).order('starts_at');
+  if(myReq!==agReq) return;                    // resposta antiga: descarta
+  el('list').style.opacity='1';
   if(error){el('list').innerHTML=emptyBox('×','Erro','Não foi possível carregar.');return;}
   DAY_APPTS=data||[];
   paintAgenda();
@@ -526,13 +532,18 @@ function groupSum(rows,keyFn){
   rows.forEach(r=>{const k=keyFn(r);m.set(k,(m.get(k)||0)+r.services.price_cents/100);});
   return m;
 }
+let finReq=0;
 async function renderFin(){
-  el('finBody').innerHTML='<div class="empty"><p>Carregando…</p></div>';
+  const myReq=++finReq;
+  if(!el('finBody').innerHTML.trim()) el('finBody').innerHTML='<div class="empty"><p>Carregando…</p></div>';
+  else el('finBody').style.opacity='.45';
   const r=periodRange();
   const len=daysBetween(r.from,r.to);
   const pe=new Date(r.from);pe.setDate(pe.getDate()-1);
   const ps=new Date(pe);ps.setDate(ps.getDate()-(len-1));
   const [rows,prevRows]=await Promise.all([fetchRange(r.from,r.to),fetchRange(ps,pe)]);
+  if(myReq!==finReq) return;                   // resposta antiga: descarta
+  el('finBody').style.opacity='1';
   const mine=x=>finBarber==='all'||x.barber_id===finBarber;
   const cur=rows.filter(mine), prev=prevRows.filter(mine);
   const total=cur.reduce((s,x)=>s+x.services.price_cents/100,0);
