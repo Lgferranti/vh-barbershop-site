@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Crect width=%27100%27 height=%27100%27 rx=%2722%27 fill=%27%230A0A0C%27/%3E%3Cpath d=%27M28 30 H72 V56 Q72 78 50 90 Q28 78 28 56 Z%27 fill=%27none%27 stroke=%27%23C9A24B%27 stroke-width=%274%27/%3E%3Ctext x=%2750%27 y=%2762%27 text-anchor=%27middle%27 font-family=%27Georgia%27 font-weight=%27700%27 font-size=%2726%27 fill=%27%23C9A24B%27%3EVH%3C/text%3E%3C/svg%3E">
+<meta name="theme-color" content="#0A0A0C">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>VH Barbershop — Painel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0A0C;--panel:#141318;--panel-2:#1B1A20;--line:#2B2A33;--line-soft:#222129;
+    --gold:#C9A24B;--gold-lt:#EBD089;--gold-deep:#8C6E2E;--grad-gold:linear-gradient(135deg,#EBD089,#C9A24B 48%,#9A7A33);
+    --silver:#AEB4BE;--silver-lt:#D6DAE0;
+    --cream:#F3ECDD;--muted:#9C948A;--muted-2:#6F685F;
+    --ok:#2FA86A;--bad:#C2645E;--shadow:rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{font-family:'Hanken Grotesk',system-ui,sans-serif;background:#000;color:var(--cream);
+    display:flex;align-items:center;justify-content:center;min-height:100dvh;
+    background-image:radial-gradient(circle at 50% -10%, #1d1a16 0%, #000 65%)}
+  .device{width:100%;max-width:430px;height:100dvh;max-height:920px;background:var(--bg);
+    position:relative;overflow:hidden;display:flex;flex-direction:column;
+    box-shadow:0 30px 90px rgba(0,0,0,.7), 0 0 0 1px rgba(201,162,75,.08)}
+  @media(min-width:480px){.device{border-radius:30px;height:880px}}
+
+  .top{flex:0 0 auto;padding:18px 20px 10px;display:flex;align-items:center;gap:13px}
+  .mark{width:40px;height:40px;flex:0 0 auto;border:1.5px solid var(--gold);border-radius:50%;
+    display:grid;place-items:center;font-weight:800;color:var(--gold-lt);font-size:14px;letter-spacing:.02em;
+    background:radial-gradient(circle at 35% 30%,#211d16,#0c0b0e)}
+  .top .h{flex:1;min-width:0}
+  .top .h .e{font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);font-weight:700}
+  .top .h .n{font-size:22px;font-weight:800;line-height:1;margin-top:3px;letter-spacing:-.01em}
+
+  .body{flex:1;position:relative;overflow:hidden}
+  .view{position:absolute;inset:0;overflow-y:auto;display:none;padding-bottom:14px}
+  .view.on{display:block}
+
+  /* date strip */
+  .dates{display:flex;gap:8px;overflow-x:auto;padding:8px 20px 6px;scrollbar-width:none}
+  .dates::-webkit-scrollbar{display:none}
+  .day{flex:0 0 auto;width:54px;border:1px solid var(--line-soft);background:var(--panel);
+    border-radius:12px;padding:9px 0;text-align:center;cursor:pointer;transition:.16s;position:relative}
+  .day:hover{border-color:var(--line)}
+  .day.sel{background:var(--grad-gold);border-color:var(--gold)}
+  .day .dow{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--muted)}
+  .day.sel .dow{color:#3a2c0c}
+  .day .num{font-size:19px;font-weight:700;line-height:1.1;margin-top:2px;color:var(--cream)}
+  .day.sel .num{color:#15110a}
+  .day .pip{position:absolute;bottom:5px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--gold)}
+  .day.sel .pip{background:#3a2c0c}
+  .day.closed .num{color:var(--muted-2)}
+
+  .stats{display:flex;gap:10px;padding:12px 20px 4px}
+  .stat{flex:1;background:var(--panel);border:1px solid var(--line-soft);border-radius:13px;padding:12px 13px}
+  .stat b{display:block;font-size:22px;font-weight:800;color:var(--gold-lt);line-height:1;letter-spacing:-.01em}
+  .stat span{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:5px;display:block}
+
+  .chips{display:flex;gap:8px;padding:14px 20px 6px;flex-wrap:wrap}
+  .chip-f{border:1px solid var(--line);background:var(--panel);color:var(--muted);
+    border-radius:999px;padding:9px 14px;font-size:12.5px;font-weight:700;cursor:pointer;transition:.16s;
+    display:flex;align-items:center;justify-content:center;gap:6px;flex:1}
+  .chip-f .dot{width:7px;height:7px;border-radius:50%}
+  .chip-f.on{color:var(--cream);border-color:var(--gold);background:var(--panel-2);box-shadow:0 0 0 1px var(--gold)}
+  .chips.fin .chip-f{flex:0 1 auto}
+
+  .daylab{padding:10px 20px 2px;font-size:12px;color:var(--muted)}
+  .daylab b{color:var(--cream);font-weight:700}
+  .dbanner{margin:10px 20px 2px}
+  .dbanner.closed{display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(194,100,94,.1);border:1px solid rgba(194,100,94,.35);border-radius:12px;padding:12px 14px}
+  .dbanner.closed span{font-size:13px;color:#e6b6b2}
+  .dbanner.closed span b{color:#f0cfcb;font-weight:800}
+  .dbanner.closed button{border:1px solid var(--line);background:transparent;color:var(--cream);border-radius:9px;padding:7px 13px;font-size:12px;font-weight:700;cursor:pointer;flex:0 0 auto;transition:.15s}
+  .dbanner.closed button:hover{border-color:var(--gold);color:var(--gold-lt)}
+  .closetoggle{width:100%;border:1px dashed var(--line);background:transparent;color:var(--muted);border-radius:12px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;transition:.15s}
+  .closetoggle:hover{border-color:var(--bad);color:#e6b6b2}
+  .closeform{margin-top:10px;display:flex;flex-direction:column;gap:9px}
+  .closeform input{border:1px solid var(--line);background:var(--panel);color:var(--cream);border-radius:11px;padding:12px;font-size:14px;font-family:inherit}
+  .closeform input:focus{outline:none;border-color:var(--gold)}
+  .confirmclose{border:none;background:var(--grad-gold);color:#15110a;border-radius:11px;padding:12px;font-size:14px;font-weight:800;cursor:pointer}
+  .day .pip.lock{background:var(--bad)}
+  .dbanner.info{display:flex;flex-direction:column;gap:4px;background:rgba(201,162,75,.08);border:1px solid var(--gold-deep);border-radius:12px;padding:10px 14px;margin:8px 20px 2px}
+  .dbanner.info span{font-size:12.5px;color:var(--gold-lt);font-weight:700}
+  .fol-form{margin:14px 20px;background:var(--panel);border:1px solid var(--line-soft);border-radius:14px;padding:16px}
+  .fol-form .ff-lab{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:700;margin-bottom:12px}
+  .fol-reason{width:100%;border:1px solid var(--line);background:var(--bg);color:var(--cream);border-radius:11px;padding:12px;font-size:14px;font-family:inherit}
+  .fol-reason:focus{outline:none;border-color:var(--gold)}
+  .fol-list{padding:0 20px 14px}
+  .fol-item{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line-soft);border-left:3px solid var(--ac,var(--gold));border-radius:12px;padding:13px 14px;margin-bottom:10px}
+  .fol-item .mid{flex:1;min-width:0}
+  .fol-item .who{font-weight:700;font-size:14px;display:flex;align-items:center;gap:7px;color:var(--cream)}
+  .fol-item .who .d{width:8px;height:8px;border-radius:50%;background:var(--ac,var(--gold))}
+  .fol-item .rng{font-size:12px;color:var(--muted);margin-top:3px}
+  .fol-item .rs{font-size:11px;color:var(--gold-lt);font-weight:700;margin-top:3px}
+  .fol-item .rm{flex:0 0 auto;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:9px;padding:7px 11px;font-size:12px;font-weight:700;cursor:pointer;transition:.15s}
+  .fol-item .rm:hover{border-color:var(--bad);color:#e6b6b2}
+
+  .list{padding:8px 20px 8px}
+  .appt{border:1px solid var(--line-soft);border-left:3px solid var(--ac,var(--gold));
+    border-radius:13px;background:var(--panel);padding:13px 14px;margin-bottom:10px}
+  .appt .row{display:flex;align-items:center;gap:13px}
+  .appt .time{flex:0 0 auto;width:54px;text-align:center}
+  .appt .time b{display:block;font-size:16px;font-weight:700;color:var(--cream)}
+  .appt .time span{font-size:10.5px;color:var(--muted)}
+  .appt .mid{flex:1;min-width:0}
+  .appt .cli{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .appt .srv{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .appt .who{font-size:11px;font-weight:700;margin-top:5px;display:flex;align-items:center;gap:6px;color:var(--ac,var(--gold))}
+  .appt .who .d{width:7px;height:7px;border-radius:50%;background:var(--ac,var(--gold))}
+  .appt .right{flex:0 0 auto;text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+  .appt .price{font-weight:800;font-size:15px;color:var(--gold-lt)}
+  .chip{font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;padding:4px 9px;border-radius:999px;white-space:nowrap}
+  .chip.confirmed{color:var(--gold-lt);border:1px solid var(--gold-deep)}
+  .chip.done{color:#bfe6cf;background:rgba(47,168,106,.16)}
+  .chip.no_show{color:#e6b6b2;background:rgba(194,100,94,.16)}
+  .chip.cancelled{color:var(--muted-2);border:1px solid var(--line)}
+  .appt.cancelled .cli{text-decoration:line-through;color:var(--muted)}
+  .nexttag{font-size:9px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:#15110a;background:var(--grad-gold);padding:3px 8px;border-radius:999px;margin-left:8px;vertical-align:middle}
+  .acts{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line-soft)}
+  .acts button{flex:1;border:1px solid var(--line);background:transparent;color:var(--cream);
+    border-radius:10px;padding:9px 0;font-size:12px;font-weight:700;cursor:pointer;transition:.15s}
+  .acts button.ok:hover{border-color:var(--ok);color:#bfe6cf}
+  .acts button.bad:hover{border-color:var(--bad);color:#e6b6b2}
+  .acts button:hover{border-color:var(--gold);color:var(--gold-lt)}
+
+  .empty{text-align:center;padding:54px 24px;color:var(--muted)}
+  .empty .ico{width:54px;height:54px;margin:0 auto 14px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;color:var(--gold-deep)}
+  .empty h3{font-size:19px;color:var(--cream);font-weight:800}
+  .empty p{font-size:13px;margin-top:6px}
+
+  /* ---- FATURAMENTO ---- */
+  .fin-pad{padding:6px 20px 8px}
+  .custom{display:flex;gap:10px;padding:4px 20px 2px}
+  .custom .fld{flex:1;min-width:0}
+  .custom label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700;display:block;margin-bottom:6px}
+  .custom input{width:100%;min-width:0;border:1px solid var(--line);background:var(--panel);color:var(--cream);
+    border-radius:11px;padding:12px 8px;font-size:13px;font-family:inherit;color-scheme:dark;text-align:center}
+  .custom input:focus{outline:none;border-color:var(--gold)}
+
+  .total{background:linear-gradient(135deg,#1a160e,#100f12);border:1px solid var(--gold-deep);
+    border-radius:16px;padding:18px 18px 16px;margin:12px 20px 6px}
+  .total .lab{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);font-weight:700}
+  .total .big{font-size:38px;font-weight:800;color:var(--gold-lt);line-height:1;margin-top:8px;letter-spacing:-.02em}
+  .total .cmp{font-size:12px;margin-top:9px;color:var(--muted)}
+  .total .cmp b{font-weight:700}
+  .up{color:#7fd3a3}.down{color:#e6938d}
+
+  .mini{display:flex;gap:10px;padding:10px 20px 4px}
+  .mini .m{flex:1;background:var(--panel);border:1px solid var(--line-soft);border-radius:13px;padding:12px 13px}
+  .mini .m b{display:block;font-size:18px;font-weight:800;color:var(--cream);letter-spacing:-.01em}
+  .mini .m span{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:5px;display:block}
+
+  .split{margin:14px 20px 4px;background:var(--panel);border:1px solid var(--line-soft);border-radius:14px;padding:15px}
+  .split .ttl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:12px}
+  .split .bar{height:10px;border-radius:6px;overflow:hidden;display:flex;background:var(--line-soft)}
+  .split .bar i{display:block;height:100%}
+  .split .leg{display:flex;justify-content:space-between;margin-top:12px;gap:10px}
+  .split .leg .it{display:flex;flex-direction:column;gap:4px}
+  .split .leg .it .k{font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px;color:var(--cream)}
+  .split .leg .it .k .d{width:8px;height:8px;border-radius:50%}
+  .split .leg .it .vv{font-size:15px;font-weight:800;color:var(--gold-lt)}
+  .split .leg .it.j .vv{color:var(--silver-lt)}
+
+  .chartcard{margin:14px 20px 8px;background:var(--panel);border:1px solid var(--line-soft);border-radius:14px;padding:15px 14px 12px}
+  .chartcard .ttl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:14px;padding:0 4px}
+  .chart{display:flex;align-items:flex-end;gap:8px;height:150px}
+  .barwrap{flex:1;display:flex;flex-direction:column;height:100%}
+  .plot{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}
+  .bv{font-size:9px;color:var(--muted-2);font-weight:700;white-space:nowrap}
+  .bar{width:70%;max-width:36px;border-radius:6px 6px 0 0;min-height:4px;transition:height .45s cubic-bezier(.2,.7,.2,1)}
+  .barlab{height:24px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);font-weight:600}
+
+  /* bottom nav */
+  .nav{flex:0 0 auto;display:flex;border-top:1px solid var(--line-soft);background:var(--bg);
+    padding:8px 12px calc(8px + env(safe-area-inset-bottom))}
+  .nav button{flex:1;background:none;border:none;cursor:pointer;color:var(--muted);
+    display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0;font-size:11px;font-weight:700;transition:.15s}
+  .nav button.on{color:var(--gold-lt)}
+  .nav button svg{width:22px;height:22px}
+</style>
+</head>
+<body>
+<div class="device">
+  <!-- ===== LOGIN ===== -->
+  <div id="loginView" style="position:absolute;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:34px">
+    <div class="mark" style="width:64px;height:64px;font-size:20px;margin-bottom:18px">VH</div>
+    <div style="font-size:22px;font-weight:800;margin-bottom:4px">Painel da equipe</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:26px">Entre com seu e-mail e senha</div>
+    <input id="lgEmail" type="email" placeholder="E-mail" autocomplete="username" style="width:100%;max-width:320px;border:1px solid var(--line);background:var(--panel);color:var(--cream);border-radius:12px;padding:14px;font-size:15px;font-family:inherit;margin-bottom:10px">
+    <input id="lgPass" type="password" placeholder="Senha" autocomplete="current-password" style="width:100%;max-width:320px;border:1px solid var(--line);background:var(--panel);color:var(--cream);border-radius:12px;padding:14px;font-size:15px;font-family:inherit;margin-bottom:14px">
+    <button onclick="doLogin()" style="width:100%;max-width:320px;border:none;background:var(--grad-gold);color:#15110a;border-radius:12px;padding:15px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit">Entrar</button>
+    <div id="lgErr" style="font-size:12.5px;color:#e6938d;margin-top:12px;min-height:16px"></div>
+  </div>
+
+
+  <div class="top">
+    <div class="mark">VH</div>
+    <div class="h">
+      <div class="e" id="hello">Painel</div>
+      <div class="n" id="tabTitle">Agenda</div>
+    </div>
+    <button onclick="doLogout()" title="Sair" style="width:38px;height:38px;flex:0 0 auto;border:1px solid var(--line);background:var(--panel);border-radius:50%;display:grid;place-items:center;cursor:pointer;color:var(--muted)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+    </button>
+  </div>
+
+  <div class="body">
+    <!-- ===== AGENDA ===== -->
+    <div class="view on" id="viewAgenda">
+      <div class="dates" id="dates"></div>
+      <div class="stats">
+        <div class="stat"><b id="stCount">0</b><span>Agend.</span></div>
+        <div class="stat"><b id="stRev">R$ 0</b><span>Previsto</span></div>
+        <div class="stat"><b id="stDone">0</b><span>Feitos</span></div>
+      </div>
+      <div class="chips" id="chips">
+        <button class="chip-f on" data-f="all" onclick="setFilter('all')">Todos</button>
+        <button class="chip-f" data-f="victor" onclick="setFilter('victor')"><span class="dot" style="background:var(--gold)"></span>Victor</button>
+        <button class="chip-f" data-f="joao" onclick="setFilter('joao')"><span class="dot" style="background:var(--silver)"></span>João</button>
+      </div>
+      <div class="daylab" id="daylab"></div>
+      <div id="dayAction"></div>
+      <div class="list" id="list"></div>
+    </div>
+
+    <!-- ===== FATURAMENTO ===== -->
+    <div class="view" id="viewFin">
+      <div class="chips fin" id="finChips" style="padding-top:10px">
+        <button class="chip-f on" data-p="dia" onclick="setPeriod('dia')">Diário</button>
+        <button class="chip-f" data-p="sem" onclick="setPeriod('sem')">Semanal</button>
+        <button class="chip-f" data-p="mes" onclick="setPeriod('mes')">Mensal</button>
+        <button class="chip-f" data-p="tri" onclick="setPeriod('tri')">Trimestral</button>
+        <button class="chip-f" data-p="custom" onclick="setPeriod('custom')">Personalizado</button>
+      </div>
+      <div class="chips fin" id="finBarberChips" style="padding-top:4px">
+        <button class="chip-f on" data-b="all" onclick="setFinBarber('all')">Todos</button>
+        <button class="chip-f" data-b="victor" onclick="setFinBarber('victor')"><span class="dot" style="background:var(--gold)"></span>Victor</button>
+        <button class="chip-f" data-b="joao" onclick="setFinBarber('joao')"><span class="dot" style="background:var(--silver)"></span>João</button>
+      </div>
+      <div class="custom" id="customBox" style="display:none">
+        <div class="fld"><label>De</label><input type="date" id="cFrom" onchange="renderFin()"></div>
+        <div class="fld"><label>Até</label><input type="date" id="cTo" onchange="renderFin()"></div>
+      </div>
+      <div id="finBody"></div>
+    </div>
+
+    <!-- ===== FOLGAS ===== -->
+    <div class="view" id="viewFolgas">
+      <div class="fol-form">
+        <div class="ff-lab">Adicionar folga / férias</div>
+        <div class="chips" id="folBarberChips" style="padding:0 0 10px">
+          <button class="chip-f on" data-b="victor" onclick="selFolBarber('victor')"><span class="dot" style="background:var(--gold)"></span>Victor</button>
+          <button class="chip-f" data-b="joao" onclick="selFolBarber('joao')"><span class="dot" style="background:var(--silver)"></span>João</button>
+        </div>
+        <div class="custom" style="padding:0 0 10px">
+          <div class="fld"><label>De</label><input type="date" id="folFrom"></div>
+          <div class="fld"><label>Até</label><input type="date" id="folTo"></div>
+        </div>
+        <input class="fol-reason" id="folReason" type="text" placeholder="Motivo (Férias, Viagem…)">
+        <button class="confirmclose" style="width:100%;margin-top:10px" onclick="addTimeoff()">Adicionar folga</button>
+      </div>
+      <div class="fol-list" id="folList"></div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="on" id="navA" onclick="tab('agenda')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
+      Agenda
+    </button>
+    <button id="navF" onclick="tab('fin')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M8 16v-4M12 16V9M16 16v-6"/></svg>
+      Faturamento
+    </button>
+    <button id="navT" onclick="tab('folgas')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      Folgas
+    </button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ================= CONFIG — COLE SUAS CHAVES AQUI ================= */
+const SB_URL = 'COLE_AQUI_SUA_URL';        // ex: https://abcdefgh.supabase.co
+const SB_KEY = 'COLE_AQUI_SUA_ANON_KEY';   // Settings → API → anon public
+/* ================================================================== */
+const TZ='America/Sao_Paulo';
+
+/* guarda de configuração: evita app quebrado se as chaves não foram coladas */
+if(SB_URL.includes('COLE_AQUI') || SB_KEY.includes('COLE_AQUI')){
+  document.body.innerHTML = `<div style="min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0A0A0C;color:#F3ECDD;font-family:'Hanken Grotesk',system-ui,sans-serif;text-align:center;padding:34px">
+    <div style="width:64px;height:64px;border:1.5px solid #C9A24B;border-radius:50%;display:grid;place-items:center;color:#EBD089;font-weight:800;margin-bottom:18px">VH</div>
+    <div style="font-size:20px;font-weight:800">Quase lá</div>
+    <div style="font-size:13.5px;color:#9C948A;margin-top:8px;max-width:34ch;line-height:1.55">Falta conectar o banco: cole a <b style="color:#EBD089">Project URL</b> e a <b style="color:#EBD089">anon key</b> do Supabase no bloco CONFIG deste arquivo.</div>
+  </div>`;
+  throw new Error('Supabase não configurado');
+}
+
+const sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+const el=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,'0');
+const fmt=v=>'R$ '+Math.round(v).toLocaleString('pt-BR');
+const DOW=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+const DOW_L=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+const MON=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const MON_L=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+
+let sel=0, filter='all', period='dia', finBarber='all', folBarber=null;
+let BARBERS=[], CLOSURES=[], TIMEOFF=[], DAY_APPTS=[];
+let SLUG={}; // barber_id -> {name, slug, color, key}
+
+function dateFor(off){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+off);return d;}
+function today(){const d=new Date();d.setHours(0,0,0,0);return d;}
+function dateKey(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
+function hhmm(iso){return new Date(iso).toLocaleTimeString('pt-BR',{timeZone:TZ,hour:'2-digit',minute:'2-digit'});}
+function fmtBR(k){const p=k.split('-');return `${p[2]}/${p[1]}`;}
+function dayBounds(d){const a=new Date(d);a.setHours(0,0,0,0);const b=new Date(d);b.setHours(23,59,59,999);return [a.toISOString(),b.toISOString()];}
+
+/* ===== login ===== */
+async function doLogin(){
+  el('lgErr').textContent='';
+  const {error}=await sb.auth.signInWithPassword({email:el('lgEmail').value.trim(),password:el('lgPass').value});
+  if(error){el('lgErr').textContent='E-mail ou senha incorretos.';return;}
+  enter();
+}
+async function enter(){
+  el('loginView').style.display='none';
+  await loadRefs();
+  const {data:u}=await sb.auth.getUser();
+  let who=(u&&u.user&&u.user.email)?u.user.email.split('@')[0]:'';
+  if(u&&u.user){const mine=BARBERS.find(b=>b.user_id===u.user.id);if(mine)who=mine.name.split(' ')[0];}
+  el('hello').textContent='Painel · Olá, '+(who.charAt(0).toUpperCase()+who.slice(1));
+  renderDates();renderAgenda();
+}
+async function doLogout(){ await sb.auth.signOut(); location.reload(); }
+async function boot(){
+  const {data}=await sb.auth.getSession();
+  if(data && data.session) enter();
+}
+
+/* ===== refs ===== */
+async function loadRefs(){
+  const [bb,cl,to]=await Promise.all([
+    sb.from('barbers').select('*').eq('active',true).order('sort'),
+    sb.from('closures').select('*'),
+    sb.from('time_off').select('*')
+  ]);
+  BARBERS=bb.data||[];CLOSURES=cl.data||[];TIMEOFF=to.data||[];
+  SLUG={};
+  BARBERS.forEach((b,i)=>{
+    const key=i===0?'victor':'joao';
+    SLUG[b.id]={name:b.name,color:i===0?'var(--gold)':'var(--silver)',key};
+  });
+  if(!folBarber && BARBERS[0]) folBarber=BARBERS[0].id;
+  // chips de filtro dinâmicos
+  el('chips').innerHTML=`<button class="chip-f ${filter==='all'?'on':''}" data-f="all" onclick="setFilter('all')">Todos</button>`+
+    BARBERS.map((b,i)=>`<button class="chip-f ${filter===b.id?'on':''}" data-f="${b.id}" onclick="setFilter('${b.id}')"><span class="dot" style="background:${i===0?'var(--gold)':'var(--silver)'}"></span>${b.name.split(' ')[0]}</button>`).join('');
+  el('finBarberChips').innerHTML=`<button class="chip-f ${finBarber==='all'?'on':''}" data-b="all" onclick="setFinBarber('all')">Todos</button>`+
+    BARBERS.map((b,i)=>`<button class="chip-f ${finBarber===b.id?'on':''}" data-b="${b.id}" onclick="setFinBarber('${b.id}')"><span class="dot" style="background:${i===0?'var(--gold)':'var(--silver)'}"></span>${b.name.split(' ')[0]}</button>`).join('');
+  el('folBarberChips').innerHTML=BARBERS.map((b,i)=>`<button class="chip-f ${folBarber===b.id?'on':''}" data-b="${b.id}" onclick="selFolBarber('${b.id}')"><span class="dot" style="background:${i===0?'var(--gold)':'var(--silver)'}"></span>${b.name.split(' ')[0]}</button>`).join('');
+}
+
+/* ===== closures / timeoff ===== */
+function closureRow(d){ return CLOSURES.find(x=>x.date===dateKey(d)); }
+function closureReason(d){ if(d.getDay()===0) return 'Fechado aos domingos'; const c=closureRow(d); return c?(c.reason||'Fechado'):null; }
+function manualClosed(d){ return d.getDay()!==0 && !!closureRow(d); }
+function barberOff(bid,d){
+  const a=new Date(d);a.setHours(0,0,0,0);const b=new Date(d);b.setHours(23,59,59,999);
+  const t=TIMEOFF.find(x=>x.barber_id===bid && new Date(x.starts_at)<=b && new Date(x.ends_at)>=a);
+  return t?(t.reason||'Indisponível'):null;
+}
+function offInfo(d){
+  if(closureReason(d)) return '';
+  const items=BARBERS.map(b=>{const o=barberOff(b.id,d);return o?`${b.name} · ${o}`:null;}).filter(Boolean);
+  if(!items.length) return '';
+  return `<div class="dbanner info">${items.map(t=>`<span>${t}</span>`).join('')}</div>`;
+}
+function toggleCloseForm(){const f=el('closeForm');if(f)f.style.display=f.style.display==='none'?'block':'none';}
+async function closeDay(){
+  const d=dateFor(sel);if(d.getDay()===0)return;
+  const reason=((el('closeReason')&&el('closeReason').value)||'').trim()||'Fechado';
+  const {error}=await sb.from('closures').insert({date:dateKey(d),reason});
+  if(error){alert('Não foi possível fechar o dia.');return;}
+  CLOSURES.push({date:dateKey(d),reason});
+  renderDates();renderAgenda();
+}
+async function reopenDay(){
+  const k=dateKey(dateFor(sel));
+  const {error}=await sb.from('closures').delete().eq('date',k);
+  if(error){alert('Não foi possível reabrir.');return;}
+  CLOSURES=CLOSURES.filter(x=>x.date!==k);
+  renderDates();renderAgenda();
+}
+function renderDayAction(d,reason,sun){
+  if(sun) return `<div class="dbanner closed"><span><b>Fechado</b> · aos domingos</span></div>`;
+  if(reason) return `<div class="dbanner closed"><span><b>Fechado</b> · ${reason}</span><button onclick="reopenDay()">Reabrir</button></div>`;
+  return `<div class="dbanner">
+      <button class="closetoggle" onclick="toggleCloseForm()">🔒 Fechar este dia</button>
+      <div id="closeForm" class="closeform" style="display:none">
+        <input id="closeReason" type="text" placeholder="Motivo (feriado, viagem, manutenção…)">
+        <button class="confirmclose" onclick="closeDay()">Confirmar fechamento</button>
+      </div>
+    </div>`;
+}
+
+/* ===== tabs ===== */
+function tab(t){
+  el('viewAgenda').classList.toggle('on',t==='agenda');
+  el('viewFin').classList.toggle('on',t==='fin');
+  el('viewFolgas').classList.toggle('on',t==='folgas');
+  el('navA').classList.toggle('on',t==='agenda');
+  el('navF').classList.toggle('on',t==='fin');
+  el('navT').classList.toggle('on',t==='folgas');
+  el('tabTitle').textContent=t==='agenda'?'Agenda':t==='fin'?'Faturamento':'Folgas';
+  if(t==='fin') renderFin();
+  if(t==='folgas') renderFolgas();
+}
+
+/* ===== agenda ===== */
+const LABEL={confirmed:'Confirmado',done:'Concluído',no_show:'Faltou',cancelled:'Cancelado'};
+function renderDates(){
+  let h='';
+  for(let off=-2;off<=10;off++){const d=dateFor(off),sun=d.getDay()===0,man=manualClosed(d),cl=sun||man;
+    h+=`<button class="day ${off===sel?'sel':''} ${cl?'closed':''}" onclick="pick(${off})">
+      <div class="dow">${off===0?'HOJE':DOW[d.getDay()]}</div><div class="num">${d.getDate()}</div>${man?'<div class="pip lock"></div>':(cl?'':'<div class="pip"></div>')}</button>`;}
+  el('dates').innerHTML=h;
+}
+function pick(o){sel=o;renderDates();renderAgenda();}
+function setFilter(f){filter=f;document.querySelectorAll('#chips .chip-f').forEach(c=>c.classList.toggle('on',c.dataset.f===f));paintAgenda();}
+async function setStatus(id,st){
+  const {error}=await sb.from('appointments').update({status:st}).eq('id',id);
+  if(error){alert('Não foi possível atualizar.');return;}
+  const a=DAY_APPTS.find(x=>x.id===id); if(a)a.status=st;
+  paintAgenda();
+}
+async function renderAgenda(){
+  const d=dateFor(sel);
+  el('daylab').innerHTML=(sel===0?'<b>Hoje</b> · ':'')+`${DOW_L[d.getDay()]}, ${d.getDate()} de ${MON_L[d.getMonth()]}`;
+  const reason=closureReason(d);
+  el('dayAction').innerHTML=renderDayAction(d,reason,d.getDay()===0)+offInfo(d);
+  if(reason){el('stCount').textContent='0';el('stRev').textContent=fmt(0);el('stDone').textContent='0';
+    el('list').innerHTML=emptyBox('×','Fechado',reason);return;}
+  el('list').innerHTML=`<div class="empty"><p>Carregando…</p></div>`;
+  const [a,b]=dayBounds(d);
+  const {data,error}=await sb.from('appointments')
+    .select('id,starts_at,ends_at,status,customer_name,customer_phone,barber_id,services(name,price_cents,duration_min)')
+    .gte('starts_at',a).lte('starts_at',b).order('starts_at');
+  if(error){el('list').innerHTML=emptyBox('×','Erro','Não foi possível carregar.');return;}
+  DAY_APPTS=data||[];
+  paintAgenda();
+}
+function paintAgenda(){
+  const d=dateFor(sel);
+  let list=DAY_APPTS.filter(x=>filter==='all'||x.barber_id===filter);
+  let count=0,rev=0,done=0;
+  list.forEach(x=>{if(x.status!=='cancelled')count++;if(x.status==='done'||x.status==='confirmed')rev+=x.services.price_cents/100;if(x.status==='done')done++;});
+  el('stCount').textContent=count;el('stRev').textContent=fmt(rev);el('stDone').textContent=done;
+  if(!list.length){el('list').innerHTML=emptyBox('cal','Sem agendamentos','Nenhum horário marcado para este dia.');return;}
+  const now=new Date();
+  let nextId=null;
+  if(sel===0){const up=list.filter(x=>x.status==='confirmed'&&new Date(x.starts_at)>=now);if(up.length)nextId=up[0].id;}
+  el('list').innerHTML=list.map(x=>{
+    const B=SLUG[x.barber_id]||{name:'—',color:'var(--gold)'};
+    const acts=x.status==='confirmed';
+    return `<div class="appt ${x.status}" style="--ac:${B.color}">
+      <div class="row">
+        <div class="time"><b>${hhmm(x.starts_at)}</b><span>${hhmm(x.ends_at)}</span></div>
+        <div class="mid"><div class="cli">${x.customer_name}${x.id===nextId?'<span class="nexttag">Próximo</span>':''}</div>
+          <div class="srv">${x.services.name} · ${x.services.duration_min}min</div>
+          <div class="who"><span class="d"></span>${B.name}</div></div>
+        <div class="right"><div class="price">${fmt(x.services.price_cents/100)}</div><div class="chip ${x.status}">${LABEL[x.status]}</div></div>
+      </div>
+      ${acts?`<div class="acts">
+        <button class="ok" onclick="setStatus('${x.id}','done')">Concluir</button>
+        <button class="bad" onclick="setStatus('${x.id}','no_show')">Faltou</button>
+        <button onclick="setStatus('${x.id}','cancelled')">Cancelar</button></div>`:''}
+    </div>`;}).join('');
+}
+function emptyBox(ico,t,p){
+  const svg=ico==='×'?'<path d="M18 6L6 18M6 6l12 12"/>':'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>';
+  return `<div class="empty"><div class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${svg}</svg></div><h3>${t}</h3><p>${p}</p></div>`;
+}
+
+/* ===== faturamento (dados reais) ===== */
+function daysBetween(a,b){return Math.round((b-a)/86400000)+1;}
+function setPeriod(p){
+  period=p;
+  document.querySelectorAll('#finChips .chip-f').forEach(c=>c.classList.toggle('on',c.dataset.p===p));
+  el('customBox').style.display=p==='custom'?'flex':'none';
+  if(p==='custom'&&!el('cFrom').value){const t=today(),f=new Date(t);f.setDate(f.getDate()-29);el('cFrom').value=dateKey(f);el('cTo').value=dateKey(t);}
+  renderFin();
+}
+function setFinBarber(b){finBarber=b;document.querySelectorAll('#finBarberChips .chip-f').forEach(c=>c.classList.toggle('on',c.dataset.b===b));renderFin();}
+function periodRange(){
+  const t=today();
+  if(period==='dia') return {from:new Date(t),to:new Date(t),lab:'Hoje',chart:'barber'};
+  if(period==='sem'){const f=new Date(t);f.setDate(t.getDate()-((t.getDay()+6)%7));return{from:f,to:new Date(t),lab:'Esta semana',chart:'week'};}
+  if(period==='mes'){const f=new Date(t.getFullYear(),t.getMonth(),1);return{from:f,to:new Date(t),lab:MON_L[t.getMonth()],chart:'monthweeks'};}
+  if(period==='tri'){const f=new Date(t.getFullYear(),t.getMonth()-2,1);return{from:f,to:new Date(t),lab:'Últimos 3 meses',chart:'months'};}
+  const f=new Date(el('cFrom').value+'T00:00:00'),to=new Date(el('cTo').value+'T00:00:00');
+  if(isNaN(f)||isNaN(to)||to<f) return {from:new Date(t),to:new Date(t),lab:'Período',chart:'auto'};
+  return {from:f,to:to,lab:'Período',chart:'auto'};
+}
+async function fetchRange(from,to){
+  const a=new Date(from);a.setHours(0,0,0,0);
+  const b=new Date(to);b.setHours(23,59,59,999);
+  const {data}=await sb.from('appointments')
+    .select('starts_at,status,barber_id,services(price_cents)')
+    .gte('starts_at',a.toISOString()).lte('starts_at',b.toISOString())
+    .in('status',['confirmed','done']);
+  return data||[];
+}
+function groupSum(rows,keyFn){
+  const m=new Map();
+  rows.forEach(r=>{const k=keyFn(r);m.set(k,(m.get(k)||0)+r.services.price_cents/100);});
+  return m;
+}
+async function renderFin(){
+  el('finBody').innerHTML='<div class="empty"><p>Carregando…</p></div>';
+  const r=periodRange();
+  const len=daysBetween(r.from,r.to);
+  const pe=new Date(r.from);pe.setDate(pe.getDate()-1);
+  const ps=new Date(pe);ps.setDate(ps.getDate()-(len-1));
+  const [rows,prevRows]=await Promise.all([fetchRange(r.from,r.to),fetchRange(ps,pe)]);
+  const mine=x=>finBarber==='all'||x.barber_id===finBarber;
+  const cur=rows.filter(mine), prev=prevRows.filter(mine);
+  const total=cur.reduce((s,x)=>s+x.services.price_cents/100,0);
+  const prevTotal=prev.reduce((s,x)=>s+x.services.price_cents/100,0);
+  const n=cur.length, ticket=n?total/n:0;
+  let cmp='sem base de comparação';
+  if(prevTotal>0){const pct=Math.round((total-prevTotal)/prevTotal*100);const up=pct>=0;
+    cmp=`<span class="${up?'up':'down'}"><b>${up?'▲':'▼'} ${Math.abs(pct)}%</b></span> vs. período anterior`;}
+  // barras
+  let bars=[];const col=(finBarber!=='all'&&SLUG[finBarber]&&SLUG[finBarber].key==='joao')?'var(--silver)':'var(--gold)';
+  const byDay=groupSum(cur,x=>dateKey(new Date(x.starts_at)));
+  if(r.chart==='barber'&&finBarber==='all'){
+    bars=BARBERS.map((b,i)=>({label:b.name.split(' ')[0],value:cur.filter(x=>x.barber_id===b.id).reduce((s,x)=>s+x.services.price_cents/100,0),color:i===0?'var(--gold)':'var(--silver)'}));
+  } else {
+    // linha do tempo por dia/semana/mês conforme o tamanho
+    const span=len;
+    if(span<=1){bars=[{label:'Hoje',value:total,color:col}];}
+    else if(span<=16){const d=new Date(r.from);while(d<=r.to){bars.push({label:d.getDate()+'/'+(d.getMonth()+1),value:byDay.get(dateKey(d))||0,color:col});d.setDate(d.getDate()+1);}}
+    else if(span<=92){let a=new Date(r.from);while(a<=r.to){const b2=new Date(a);b2.setDate(a.getDate()+6);const end=b2>r.to?r.to:b2;let s=0;const d=new Date(a);while(d<=end){s+=byDay.get(dateKey(d))||0;d.setDate(d.getDate()+1);}bars.push({label:a.getDate()+'/'+(a.getMonth()+1),value:s,color:col});a.setDate(a.getDate()+7);}}
+    else{let a=new Date(r.from.getFullYear(),r.from.getMonth(),1);while(a<=r.to){const b2=new Date(a.getFullYear(),a.getMonth()+1,0);const end=b2>r.to?r.to:b2;let s=0;const d=new Date(a<r.from?r.from:a);while(d<=end){s+=byDay.get(dateKey(d))||0;d.setDate(d.getDate()+1);}bars.push({label:MON[a.getMonth()],value:s,color:col});a=new Date(a.getFullYear(),a.getMonth()+1,1);}}
+  }
+  const max=Math.max(1,...bars.map(b=>b.value));
+  const labRight=finBarber==='all'?'faturamento':(SLUG[finBarber]?SLUG[finBarber].name:'');
+  const vTot=cur.filter(x=>SLUG[x.barber_id]&&SLUG[x.barber_id].key==='victor').reduce((s,x)=>s+x.services.price_cents/100,0);
+  const jTot=cur.filter(x=>SLUG[x.barber_id]&&SLUG[x.barber_id].key==='joao').reduce((s,x)=>s+x.services.price_cents/100,0);
+  const vPct=total?Math.round(vTot/total*100):50;
+  el('finBody').innerHTML=`
+    <div class="total"><div class="lab">${r.lab} · ${labRight}</div><div class="big">${fmt(total)}</div><div class="cmp">${cmp}</div></div>
+    <div class="mini"><div class="m"><b>${n}</b><span>Atendimentos</span></div><div class="m"><b>${fmt(ticket)}</b><span>Ticket médio</span></div></div>
+    ${finBarber==='all'&&BARBERS.length>1?`<div class="split"><div class="ttl">Por barbeiro</div>
+      <div class="bar"><i style="width:${vPct}%;background:var(--grad-gold)"></i><i style="width:${100-vPct}%;background:var(--silver)"></i></div>
+      <div class="leg">
+        <div class="it"><span class="k"><span class="d" style="background:var(--gold)"></span>${BARBERS[0].name}</span><span class="vv">${fmt(vTot)}</span></div>
+        <div class="it j" style="text-align:right"><span class="k" style="justify-content:flex-end"><span class="d" style="background:var(--silver)"></span>${BARBERS[1].name}</span><span class="vv">${fmt(jTot)}</span></div>
+      </div></div>`:''}
+    <div class="chartcard"><div class="ttl">Evolução</div>
+      <div class="chart">${bars.map(b=>`
+        <div class="barwrap"><div class="plot">
+          <div class="bv">${b.value>=1000?(b.value/1000).toFixed(1)+'k':Math.round(b.value)}</div>
+          <div class="bar" style="height:${Math.round(b.value/max*82)}%;background:${b.color==='var(--silver)'?'var(--silver)':'var(--grad-gold)'}"></div>
+        </div><div class="barlab">${b.label}</div></div>`).join('')}
+      </div></div>`;
+}
+
+/* ===== folgas ===== */
+function selFolBarber(b){folBarber=b;document.querySelectorAll('#folBarberChips .chip-f').forEach(c=>c.classList.toggle('on',c.dataset.b===b));}
+async function addTimeoff(){
+  const from=el('folFrom').value,to=el('folTo').value,reason=(el('folReason').value||'').trim()||'Indisponível';
+  if(!from||!to||to<from||!folBarber)return;
+  const starts=new Date(from+'T00:00:00'), ends=new Date(to+'T23:59:59');
+  const {data,error}=await sb.from('time_off').insert({barber_id:folBarber,starts_at:starts.toISOString(),ends_at:ends.toISOString(),reason}).select().single();
+  if(error){alert('Não foi possível adicionar a folga.');return;}
+  TIMEOFF.push(data);el('folReason').value='';
+  renderFolgas();renderDates();renderAgenda();
+}
+async function removeTimeoff(id){
+  const {error}=await sb.from('time_off').delete().eq('id',id);
+  if(error){alert('Não foi possível remover.');return;}
+  TIMEOFF=TIMEOFF.filter(x=>x.id!==id);
+  renderFolgas();renderDates();renderAgenda();
+}
+function renderFolgas(){
+  if(!el('folFrom').value){const t=today(),b=new Date(t);b.setDate(b.getDate()+7);el('folFrom').value=dateKey(t);el('folTo').value=dateKey(b);}
+  const list=TIMEOFF.slice().sort((x,y)=>x.starts_at.localeCompare(y.starts_at));
+  if(!list.length){el('folList').innerHTML=`<div class="empty"><div class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div><h3>Sem folgas</h3><p>Nenhuma férias ou folga cadastrada.</p></div>`;return;}
+  el('folList').innerHTML=list.map(t=>{const B=SLUG[t.barber_id]||{name:'—',color:'var(--gold)'};
+    const fk=dateKey(new Date(t.starts_at)), tk=dateKey(new Date(t.ends_at));
+    return `<div class="fol-item" style="--ac:${B.color}">
+      <div class="mid"><div class="who"><span class="d"></span>${B.name}</div>
+        <div class="rng">${fmtBR(fk)} – ${fmtBR(tk)}</div>
+        <div class="rs">${t.reason||'Indisponível'}</div></div>
+      <button class="rm" onclick="removeTimeoff('${t.id}')">Remover</button>
+    </div>`;}).join('');
+}
+
+boot();
+</script>
+</body>
+</html>
