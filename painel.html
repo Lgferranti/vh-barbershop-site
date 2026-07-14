@@ -173,6 +173,16 @@
   .bar{width:70%;max-width:36px;border-radius:6px 6px 0 0;min-height:4px;transition:height .45s cubic-bezier(.2,.7,.2,1)}
   .barlab{height:24px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);font-weight:600}
 
+  .qbtns{display:flex;gap:8px;margin:10px 20px 2px}
+  .qbtn{flex:1;border:1px dashed var(--line);background:transparent;color:var(--muted);border-radius:12px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;transition:.15s}
+  .qbtn:hover{border-color:var(--gold);color:var(--gold-lt)}
+  .qform{margin:10px 20px 2px;background:var(--panel);border:1px solid var(--line-soft);border-radius:14px;padding:14px}
+  .qrow{margin-bottom:10px}
+  .qrow label{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:6px}
+  .qrow select,.qrow input{width:100%;border:1px solid var(--line);background:var(--bg);color:var(--cream);border-radius:11px;padding:12px;font-size:14px;font-family:inherit}
+  .qrow select:focus,.qrow input:focus{outline:none;border-color:var(--gold)}
+  .appt.blocked .cli{color:var(--muted)}
+
   /* bottom nav */
   .nav{flex:0 0 auto;display:flex;border-top:1px solid var(--line-soft);background:var(--bg);
     padding:8px 12px calc(8px + env(safe-area-inset-bottom))}
@@ -223,6 +233,24 @@
       </div>
       <div class="daylab" id="daylab"></div>
       <div id="dayAction"></div>
+      <div class="qbtns" id="qbtns">
+        <button class="qbtn" onclick="toggleQ('qNew')">+ Agendar cliente</button>
+        <button class="qbtn" onclick="toggleQ('qBlock')">Bloquear horário</button>
+      </div>
+      <div id="qNew" class="qform" style="display:none">
+        <div class="qrow" id="qnBarberRow"><label>Barbeiro</label><select id="qnBarber" onchange="qnReloadSlots()"></select></div>
+        <div class="qrow"><label>Serviço</label><select id="qnService" onchange="qnReloadSlots()"></select></div>
+        <div class="qrow"><label>Horário</label><select id="qnTime"></select></div>
+        <div class="qrow"><label>Cliente</label><input id="qnName" list="knownClients" placeholder="Nome do cliente" autocomplete="off" oninput="qnFillPhone()"><datalist id="knownClients"></datalist></div>
+        <div class="qrow"><label>WhatsApp</label><input id="qnPhone" placeholder="(17) 9 9999-9999"></div>
+        <button class="confirmclose" style="width:100%" onclick="qnBook()">Confirmar agendamento</button>
+      </div>
+      <div id="qBlock" class="qform" style="display:none">
+        <div class="qrow" id="qbBarberRow"><label>Barbeiro</label><select id="qbBarber" onchange="qbReloadSlots()"></select></div>
+        <div class="qrow"><label>Horário (bloqueia 40 min)</label><select id="qbTime"></select></div>
+        <div class="qrow"><label>Motivo (opcional)</label><input id="qbReason" placeholder="Bloqueado"></div>
+        <button class="confirmclose" style="width:100%" onclick="qbBlock()">Bloquear horário</button>
+      </div>
       <div class="list" id="list"></div>
     </div>
 
@@ -312,7 +340,7 @@ const MON_L=['janeiro','fevereiro','março','abril','maio','junho','julho','agos
 
 let sel=0, filter='all', period='dia', finBarber='all', folBarber=null;
 let ACCESS={role:'admin',barber_id:null};
-let BARBERS=[], CLOSURES=[], TIMEOFF=[], DAY_APPTS=[];
+let BARBERS=[], CLOSURES=[], TIMEOFF=[], DAY_APPTS=[], SVCS=[], BH=[], CLIENTS=[];
 let SLUG={}; // barber_id -> {name, slug, color, key}
 
 function dateFor(off){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+off);return d;}
@@ -350,12 +378,26 @@ async function boot(){
 
 /* ===== refs ===== */
 async function loadRefs(){
-  const [bb,cl,to]=await Promise.all([
+  const [bb,cl,to,sv,bh,cli]=await Promise.all([
     sb.from('barbers').select('*').eq('active',true).order('sort'),
     sb.from('closures').select('*'),
-    sb.from('time_off').select('*')
+    sb.from('time_off').select('*'),
+    sb.from('services').select('*').eq('active',true).order('sort'),
+    sb.from('business_hours').select('*'),
+    sb.from('appointments').select('customer_name,customer_phone,created_at').order('created_at',{ascending:false}).limit(300)
   ]);
-  BARBERS=bb.data||[];CLOSURES=cl.data||[];TIMEOFF=to.data||[];
+  BARBERS=bb.data||[];CLOSURES=cl.data||[];TIMEOFF=to.data||[];SVCS=sv.data||[];BH=bh.data||[];
+  const seen=new Set(); CLIENTS=[];
+  (cli.data||[]).forEach(c=>{const k=(c.customer_phone||'').replace(/\D/g,'');
+    if(k && !seen.has(k)){seen.add(k);CLIENTS.push({name:c.customer_name,phone:c.customer_phone});}});
+  el('knownClients').innerHTML=CLIENTS.map(c=>`<option value="${c.name.replace(/"/g,'&quot;')}">${c.phone}</option>`).join('');
+  el('qnService').innerHTML=SVCS.map(s2=>`<option value="${s2.id}">${s2.name} · ${s2.duration_min}min</option>`).join('');
+  const bOpts=BARBERS.map(b2=>`<option value="${b2.id}">${b2.name}</option>`).join('');
+  el('qnBarber').innerHTML=bOpts; el('qbBarber').innerHTML=bOpts;
+  if(ACCESS.role==='barber'&&ACCESS.barber_id){
+    el('qnBarber').value=ACCESS.barber_id; el('qbBarber').value=ACCESS.barber_id;
+    el('qnBarberRow').style.display='none'; el('qbBarberRow').style.display='none';
+  }
   SLUG={};
   BARBERS.forEach((b,i)=>{
     const key=i===0?'victor':'joao';
@@ -436,7 +478,7 @@ function renderDates(){
       <div class="dow">${off===0?'HOJE':DOW[d.getDay()]}</div><div class="num">${d.getDate()}</div>${man?'<div class="pip lock"></div>':(cl?'':'<div class="pip"></div>')}</button>`;}
   el('dates').innerHTML=h;
 }
-function pick(o){sel=o;renderDates();renderAgenda();}
+function pick(o){sel=o;renderDates();renderAgenda();qRefresh();}
 function setFilter(f){filter=f;document.querySelectorAll('#chips .chip-f').forEach(c=>c.classList.toggle('on',c.dataset.f===f));paintAgenda();}
 async function setStatus(id,st){
   const {error}=await sb.from('appointments').update({status:st}).eq('id',id);
@@ -466,20 +508,27 @@ async function renderAgenda(){
   DAY_APPTS=data||[];
   paintAgenda();
 }
+function dayBlocks(d){
+  const a0=new Date(d);a0.setHours(0,0,0,0);const b0=new Date(d);b0.setHours(23,59,59,999);
+  return TIMEOFF.filter(t=>(filter==='all'||t.barber_id===filter)
+    && new Date(t.starts_at)<=b0 && new Date(t.ends_at)>=a0
+    && (new Date(t.ends_at)-new Date(t.starts_at))<86000000);   // só bloqueios de horário (férias viram banner)
+}
 function paintAgenda(){
   const d=dateFor(sel);
   let list=DAY_APPTS.filter(x=>filter==='all'||x.barber_id===filter);
+  const blocks=dayBlocks(d);
   let count=0,rev=0,done=0;
   list.forEach(x=>{if(x.status!=='cancelled')count++;if(x.status==='done'||x.status==='confirmed')rev+=x.services.price_cents/100;if(x.status==='done')done++;});
   el('stCount').textContent=count;el('stRev').textContent=fmt(rev);el('stDone').textContent=done;
-  if(!list.length){el('list').innerHTML=emptyBox('cal','Sem agendamentos','Nenhum horário marcado para este dia.');return;}
+  if(!list.length && !blocks.length){el('list').innerHTML=emptyBox('cal','Sem agendamentos','Nenhum horário marcado para este dia.');return;}
   const now=new Date();
   let nextId=null;
   if(sel===0){const up=list.filter(x=>x.status==='confirmed'&&new Date(x.starts_at)>=now);if(up.length)nextId=up[0].id;}
-  el('list').innerHTML=list.map(x=>{
+  const items=list.map(x=>{
     const B=SLUG[x.barber_id]||{name:'—',color:'var(--gold)'};
     const acts=x.status==='confirmed';
-    return `<div class="appt ${x.status}" style="--ac:${B.color}">
+    return {t:x.starts_at, html:`<div class="appt ${x.status}" style="--ac:${B.color}">
       <div class="row">
         <div class="time"><b>${hhmm(x.starts_at)}</b><span>${hhmm(x.ends_at)}</span></div>
         <div class="mid"><div class="cli">${x.customer_name}${x.id===nextId?'<span class="nexttag">Próximo</span>':''}</div>
@@ -491,7 +540,23 @@ function paintAgenda(){
         <button class="ok" onclick="setStatus('${x.id}','done')">Concluir</button>
         <button class="bad" onclick="setStatus('${x.id}','no_show')">Faltou</button>
         <button onclick="setStatus('${x.id}','cancelled')">Cancelar</button></div>`:''}
-    </div>`;}).join('');
+    </div>`};});
+  blocks.forEach(t=>{
+    const B=SLUG[t.barber_id]||{name:'—',color:'var(--gold)'};
+    const canRm=ACCESS.role==='admin'||t.barber_id===ACCESS.barber_id;
+    items.push({t:t.starts_at, html:`<div class="appt blocked" style="--ac:${B.color}">
+      <div class="row">
+        <div class="time"><b>${hhmm(t.starts_at)}</b><span>${hhmm(t.ends_at)}</span></div>
+        <div class="mid"><div class="cli">Horário bloqueado</div>
+          <div class="srv">${t.reason||'Bloqueado'}</div>
+          <div class="who"><span class="d"></span>${B.name}</div></div>
+        <div class="right"><div class="chip cancelled">Bloqueado</div></div>
+      </div>
+      ${canRm?`<div class="acts"><button onclick="removeBlock('${t.id}')">Desbloquear</button></div>`:''}
+    </div>`});
+  });
+  items.sort((x,y)=>String(x.t).localeCompare(String(y.t)));
+  el('list').innerHTML=items.map(x=>x.html).join('');
 }
 function emptyBox(ico,t,p){
   const svg=ico==='×'?'<path d="M18 6L6 18M6 6l12 12"/>':'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>';
@@ -617,6 +682,77 @@ function renderFolgas(){
         <div class="rs">${t.reason||'Indisponível'}</div></div>
       <button class="rm" onclick="removeTimeoff('${t.id}')">Remover</button>
     </div>`;}).join('');
+}
+
+/* ===== agendar cliente / bloquear horário ===== */
+function toggleQ(id){
+  ['qNew','qBlock'].forEach(x=>{el(x).style.display = (x===id && el(x).style.display==='none') ? 'block' : 'none';});
+  if(el(id).style.display==='block'){ if(id==='qNew') qnReloadSlots(); else qbReloadSlots(); }
+}
+function qRefresh(){
+  if(el('qNew').style.display==='block') qnReloadSlots();
+  if(el('qBlock').style.display==='block') qbReloadSlots();
+}
+function gridForDay(d,dur){
+  const wd=d.getDay(), out=[];
+  BH.filter(h=>h.weekday===wd).sort((x,y)=>String(x.opens).localeCompare(String(y.opens))).forEach(h=>{
+    const [oh,om]=String(h.opens).split(':').map(Number);
+    const [ch,cm]=String(h.closes).split(':').map(Number);
+    let t=oh*60+om; const end=ch*60+cm;
+    while(t+dur<=end){ out.push([Math.floor(t/60),t%60]); t+=40; }
+  });
+  return out;
+}
+async function qnReloadSlots(){
+  const d=dateFor(sel);
+  el('qnTime').innerHTML='<option value="">Carregando…</option>';
+  if(closureReason(d)){ el('qnTime').innerHTML='<option value="">Dia fechado</option>'; return; }
+  const bid=el('qnBarber').value, sid=el('qnService').value;
+  if(!bid||!sid){ el('qnTime').innerHTML='<option value="">—</option>'; return; }
+  const {data,error}=await sb.rpc('get_available_slots',{p_barber_id:bid,p_service_id:sid,p_date:dateKey(d)});
+  if(error||!data||!data.length){ el('qnTime').innerHTML='<option value="">Sem horários livres</option>'; return; }
+  el('qnTime').innerHTML=data.map(r=>`<option value="${r.slot}">${hhmm(r.slot)}</option>`).join('');
+}
+function qnFillPhone(){
+  const c=CLIENTS.find(x=>x.name===el('qnName').value);
+  if(c) el('qnPhone').value=c.phone;
+}
+async function qnBook(){
+  const iso=el('qnTime').value, name=el('qnName').value.trim(), phone=el('qnPhone').value.trim();
+  if(!iso){alert('Escolha um horário.');return;}
+  if(!name||phone.length<8){alert('Preencha nome e WhatsApp do cliente.');return;}
+  const {error}=await sb.rpc('book_appointment',{p_barber_id:el('qnBarber').value,p_service_id:el('qnService').value,p_start:iso,p_customer_name:name,p_customer_phone:phone});
+  if(error){alert((error.message||'').includes('ocupado')?'Esse horário acabou de ser ocupado.':'Não foi possível agendar.');qnReloadSlots();return;}
+  if(!CLIENTS.find(x=>x.name===name)){CLIENTS.unshift({name,phone});
+    el('knownClients').innerHTML=CLIENTS.map(c=>`<option value="${c.name.replace(/"/g,'&quot;')}">${c.phone}</option>`).join('');}
+  el('qnName').value='';el('qnPhone').value='';
+  toggleQ('qNew');renderAgenda();
+}
+async function qbReloadSlots(){
+  const d=dateFor(sel);
+  if(closureReason(d)){ el('qbTime').innerHTML='<option value="">Dia fechado</option>'; return; }
+  const bid=el('qbBarber').value;
+  const now=new Date();
+  const opts=gridForDay(d,40).map(([h,m])=>{const x=new Date(d);x.setHours(h,m,0,0);return x;})
+    .filter(x=>x>=now)
+    .filter(x=>!TIMEOFF.some(t=>t.barber_id===bid && new Date(t.starts_at)<x.getTime()+40*60000 && new Date(t.ends_at)>x));
+  el('qbTime').innerHTML=opts.length?opts.map(x=>`<option value="${x.toISOString()}">${hhmm(x.toISOString())}</option>`).join(''):'<option value="">Sem horários</option>';
+}
+async function qbBlock(){
+  const iso=el('qbTime').value; if(!iso){alert('Escolha um horário.');return;}
+  const bid=el('qbBarber').value;
+  const ends=new Date(new Date(iso).getTime()+40*60000).toISOString();
+  const reason=(el('qbReason').value||'').trim()||'Bloqueado';
+  const {data,error}=await sb.from('time_off').insert({barber_id:bid,starts_at:iso,ends_at:ends,reason}).select().single();
+  if(error){alert('Não foi possível bloquear.');return;}
+  TIMEOFF.push(data);el('qbReason').value='';
+  toggleQ('qBlock');paintAgenda();qbReloadSlots();
+}
+async function removeBlock(id){
+  const {error}=await sb.from('time_off').delete().eq('id',id);
+  if(error){alert('Não foi possível desbloquear.');return;}
+  TIMEOFF=TIMEOFF.filter(x=>x.id!==id);
+  paintAgenda();
 }
 
 boot();

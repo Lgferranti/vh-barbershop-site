@@ -280,7 +280,7 @@
       </div>
     </div>
     <div class="home-foot">
-      <div class="addr">RUA MARCOS VILELA FILHO, 115 — S. J. RIO PRETO<br>SEG–SÁB · 09H ÀS 19H</div>
+      <div class="addr">RUA MARCOS VILELA FILHO, 115 — S. J. RIO PRETO<br>SEG 14:30–19H · TER–SEX 9–12H / 13–19H · SÁB 8:30–17H</div>
       <button class="cta" onclick="start()">Agendar horário <span class="arr">→</span></button>
     </div>
   </section>
@@ -309,7 +309,7 @@
       <div id="barbers"></div>
     </div>
     <div class="view" id="v3">
-      <p class="section-note">Escolha o dia. Fechamos aos domingos.</p>
+      <p class="section-note">Escolha o dia. Domingos fechado · segunda atendemos a partir das 14h30.</p>
       <div class="dates" id="dates"></div>
       <div id="slotArea"></div>
     </div>
@@ -374,7 +374,7 @@ const TITLES = ['','Serviço','Profissional','Data e horário','Seus dados','Con
 
 const state = {service:null, barber:null, date:null, slotIso:null, time:null, name:'', phone:''};
 let step = 0;
-let SERVICES=[], BARBERS=[], CLOSURES=[], TIMEOFF=[];
+let SERVICES=[], BARBERS=[], CLOSURES=[], TIMEOFF=[], BH=[];
 let dateList=[], views=[];
 let lastDatesBarber=null, slotReq=0; const slotCache=new Map();
 
@@ -406,14 +406,15 @@ function icoFor(s){
 
 /* ---------- carga inicial ---------- */
 async function loadAll(){
-  const [sv,bb,cl,to] = await Promise.all([
+  const [sv,bb,cl,to,bh] = await Promise.all([
     sb.from('services').select('*').eq('active',true).order('sort'),
     sb.from('barbers').select('*').eq('active',true).order('sort'),
     sb.from('closures').select('*'),
-    sb.from('time_off').select('*')
+    sb.from('time_off').select('*'),
+    sb.from('business_hours').select('*')
   ]);
   if(sv.error||bb.error){ alert('Erro ao carregar dados. Verifique as chaves do Supabase.'); console.error(sv.error||bb.error); return; }
-  SERVICES=sv.data; BARBERS=bb.data; CLOSURES=cl.data||[]; TIMEOFF=to.data||[];
+  SERVICES=sv.data; BARBERS=bb.data; CLOSURES=cl.data||[]; TIMEOFF=to.data||[]; BH=bh.data||[];
   renderServices(); renderBarbers();
 }
 
@@ -541,6 +542,16 @@ function ensureDates(){
   renderSlots(i); updateGate();
 }
 
+function gridForDay(d,dur){
+  const wd=d.getDay(), out=[];
+  BH.filter(h=>h.weekday===wd).sort((x,y)=>String(x.opens).localeCompare(String(y.opens))).forEach(h=>{
+    const [oh,om]=String(h.opens).split(':').map(Number);
+    const [ch,cm]=String(h.closes).split(':').map(Number);
+    let t=oh*60+om; const end=ch*60+cm;
+    while(t+dur<=end){ out.push(String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')); t+=40; }
+  });
+  return out;
+}
 async function renderSlots(i){
   const d=dateList[i]; const myReq=++slotReq;
   const r=dayReasonFor(d);
@@ -550,6 +561,12 @@ async function renderSlots(i){
       <div class="lk"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
       <b>${r.kind==='shop'?'Fechado':'Indisponível'}</b><span>${r.txt}</span><small>Escolha outro dia disponível acima.</small></div>`;
     return;
+  }
+  const grid=gridForDay(d,state.service.duration_min);
+  if(!grid.length){
+    el('slotArea').style.opacity='1';
+    el('slotArea').innerHTML=`<div class="closed-note"><b>Sem horários</b><span>Não atendemos nesse dia.</span><small>Escolha outro dia acima.</small></div>`;
+    state.time=null; state.slotIso=null; updateGate(); return;
   }
   const dk=dateKey(d);
   const targets = state.barber.any ? BARBERS.filter(b=>!barberOffByRow(b,d)) : [state.barber];
@@ -563,23 +580,25 @@ async function renderSlots(i){
     const results = await Promise.all(targets.map(b=>
       sb.rpc('get_available_slots',{p_barber_id:b.id,p_service_id:state.service.id,p_date:dk})
     ));
-    if(myReq!==slotReq) return;               // resposta antiga: descarta
+    if(myReq!==slotReq) return;
     set=new Map();
     results.forEach(res=>{ (res.data||[]).forEach(row=>{ const t=hhmm(row.slot); if(!set.has(t)) set.set(t,row.slot); }); });
     slotCache.set(ck,{at:Date.now(),set});
   }
   if(myReq!==slotReq) return;
   el('slotArea').style.opacity='1';
-  const times=[...set.keys()].sort();
-  if(!times.length){
-    el('slotArea').innerHTML=`<div class="closed-note"><b>Sem horários</b><span>Este dia já está cheio.</span><small>Escolha outro dia acima.</small></div>`;
-    state.time=null; state.slotIso=null; updateGate(); return;
-  }
   window.__slotmap=set;
   if(state.time && set.has(state.time)) state.slotIso=set.get(state.time);
   else { state.time=null; state.slotIso=null; }
-  const am=times.filter(t=>+t.split(':')[0]<12), pm=times.filter(t=>+t.split(':')[0]>=12);
-  const cell=t=>`<button class="slot ${t===state.time?'sel':''}" onclick="pickTime('${t}')" data-t="${t}">${t}</button>`;
+  if(!set.size && grid.every(t=>{const [h,m]=t.split(':').map(Number);const x=new Date(d);x.setHours(h,m,0,0);return x<new Date();})){
+    el('slotArea').innerHTML=`<div class="closed-note"><b>Sem horários</b><span>Os horários de hoje já passaram.</span><small>Escolha outro dia acima.</small></div>`;
+    updateGate(); return;
+  }
+  const cell=t=>{
+    if(set.has(t)) return `<button class="slot ${t===state.time?'sel':''}" onclick="pickTime('${t}')" data-t="${t}">${t}</button>`;
+    return `<button class="slot busy" disabled>${t}</button>`;
+  };
+  const am=grid.filter(t=>+t.split(':')[0]<12), pm=grid.filter(t=>+t.split(':')[0]>=12);
   el('slotArea').innerHTML=(am.length?`<div class="slot-head">Manhã</div><div class="slots">${am.map(cell).join('')}</div>`:'')+
                            (pm.length?`<div class="slot-head">Tarde</div><div class="slots">${pm.map(cell).join('')}</div>`:'');
   updateGate();
