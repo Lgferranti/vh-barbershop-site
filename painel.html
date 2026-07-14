@@ -695,11 +695,15 @@ function qRefresh(){
 }
 function gridForDay(d,dur){
   const wd=d.getDay(), out=[];
-  BH.filter(h=>h.weekday===wd).sort((x,y)=>String(x.opens).localeCompare(String(y.opens))).forEach(h=>{
+  const ivs=BH.filter(h=>h.weekday===wd).sort((x,y)=>String(x.opens).localeCompare(String(y.opens)));
+  if(!ivs.length) return out;
+  const lastClose=String(ivs[ivs.length-1].closes);
+  ivs.forEach(h=>{
     const [oh,om]=String(h.opens).split(':').map(Number);
     const [ch,cm]=String(h.closes).split(':').map(Number);
+    const isLast=String(h.closes)===lastClose;
     let t=oh*60+om; const end=ch*60+cm;
-    while(t+dur<=end){ out.push([Math.floor(t/60),t%60]); t+=40; }
+    while(isLast ? t<=end : t+dur<=end){ out.push([Math.floor(t/60),t%60]); t+=40; }
   });
   return out;
 }
