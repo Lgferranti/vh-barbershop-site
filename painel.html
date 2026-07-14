@@ -311,6 +311,7 @@ const MON=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','de
 const MON_L=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 
 let sel=0, filter='all', period='dia', finBarber='all', folBarber=null;
+let ACCESS={role:'admin',barber_id:null};
 let BARBERS=[], CLOSURES=[], TIMEOFF=[], DAY_APPTS=[];
 let SLUG={}; // barber_id -> {name, slug, color, key}
 
@@ -330,7 +331,11 @@ async function doLogin(){
 }
 async function enter(){
   el('loginView').style.display='none';
+  const {data:acc}=await sb.rpc('get_my_access');
+  if(acc&&acc.role) ACCESS=acc;
+  if(ACCESS.role==='barber'&&ACCESS.barber_id){ filter=ACCESS.barber_id; finBarber=ACCESS.barber_id; }
   await loadRefs();
+  if(ACCESS.role==='barber'){ el('chips').style.display='none'; el('finBarberChips').style.display='none'; el('navT').style.display='none'; }
   const {data:u}=await sb.auth.getUser();
   let who=(u&&u.user&&u.user.email)?u.user.email.split('@')[0]:'';
   if(u&&u.user){const mine=BARBERS.find(b=>b.user_id===u.user.id);if(mine)who=mine.name.split(' ')[0];}
@@ -399,6 +404,7 @@ async function reopenDay(){
 function renderDayAction(d,reason,sun){
   if(sun) return `<div class="dbanner closed"><span><b>Fechado</b> · aos domingos</span></div>`;
   if(reason) return `<div class="dbanner closed"><span><b>Fechado</b> · ${reason}</span><button onclick="reopenDay()">Reabrir</button></div>`;
+  if(ACCESS.role!=='admin') return '';
   return `<div class="dbanner">
       <button class="closetoggle" onclick="toggleCloseForm()">🔒 Fechar este dia</button>
       <div id="closeForm" class="closeform" style="display:none">
