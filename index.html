@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Crect width=%27100%27 height=%27100%27 rx=%2722%27 fill=%27%230A0A0C%27/%3E%3Cpath d=%27M28 30 H72 V56 Q72 78 50 90 Q28 78 28 56 Z%27 fill=%27none%27 stroke=%27%23C9A24B%27 stroke-width=%274%27/%3E%3Ctext x=%2750%27 y=%2762%27 text-anchor=%27middle%27 font-family=%27Georgia%27 font-weight=%27700%27 font-size=%2726%27 fill=%27%23C9A24B%27%3EVH%3C/text%3E%3C/svg%3E">
 <meta name="theme-color" content="#0A0A0C">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>VH Barbershop — Agendamento</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -705,5 +709,6 @@ function reset(){
 views=[null, el('v1'), el('v2v')||el('v2'), el('v3'), el('v4'), el('v5')];
 loadAll();
 </script>
+<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');</script>
 </body>
 </html>
