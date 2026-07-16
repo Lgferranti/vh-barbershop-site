@@ -193,11 +193,60 @@
   .appt.past{opacity:.42}
   .chip.free{color:var(--muted-2);border:1px solid var(--line)}
 
+  /* ---- CLIENTES ---- */
+  .cli-search{padding:10px 20px 4px}
+  .cli-search input{width:100%;border:1px solid var(--line);background:var(--panel);color:var(--cream);
+    border-radius:12px;padding:12px 14px;font-size:14px;font-family:inherit}
+  .cli-search input:focus{outline:none;border-color:var(--gold)}
+  .cli-list{padding:8px 20px 14px}
+  .cli-card{width:100%;text-align:left;background:var(--panel);border:1px solid var(--line-soft);
+    border-left:3px solid var(--ac,var(--gold-deep));border-radius:13px;padding:13px 14px;margin-bottom:10px;
+    cursor:pointer;transition:.15s;display:block}
+  .cli-card:hover{border-color:var(--line);transform:translateY(-1px)}
+  .cli-top{display:flex;align-items:center;gap:10px}
+  .cli-nm{flex:1;min-width:0;font-weight:700;font-size:15px;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cli-tot{font-weight:800;font-size:14px;color:var(--gold-lt);white-space:nowrap}
+  .cli-sub{font-size:12px;color:var(--muted);margin-top:4px}
+  .cli-tags{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .tag{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:800;padding:3px 8px;border-radius:999px}
+  .tag.miss{color:#e6b6b2;background:rgba(194,100,94,.16)}
+  .tag.gone{color:var(--gold-lt);border:1px solid var(--gold-deep)}
+  .tag.soon{color:#bfe6cf;background:rgba(47,168,106,.16)}
+  .tag.vip{color:#15110a;background:var(--grad-gold)}
+
+  /* ---- FICHA (bottom sheet) ---- */
+  .sheet{position:absolute;inset:0;z-index:70;display:none}
+  .sheet.on{display:block}
+  .sheet-bg{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+  .sheet-body{position:absolute;left:0;right:0;bottom:0;max-height:86%;overflow-y:auto;
+    background:var(--bg);border-top:1px solid var(--gold-deep);border-radius:20px 20px 0 0;
+    padding:18px 20px calc(20px + env(safe-area-inset-bottom));animation:up .28s cubic-bezier(.2,.7,.2,1)}
+  @keyframes up{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
+  .sheet-grip{width:38px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 14px}
+  .fi-nm{font-size:21px;font-weight:800;letter-spacing:-.01em}
+  .fi-ph{font-size:13px;color:var(--muted);margin-top:3px}
+  .fi-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:16px 0 4px}
+  .fi-b{background:var(--panel);border:1px solid var(--line-soft);border-radius:12px;padding:12px}
+  .fi-b b{display:block;font-size:19px;font-weight:800;color:var(--cream);line-height:1}
+  .fi-b.gold b{color:var(--gold-lt)}
+  .fi-b.bad b{color:#e6938d}
+  .fi-b span{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:5px;display:block}
+  .fi-rows{margin-top:12px;background:var(--panel);border:1px solid var(--line-soft);border-radius:12px;padding:2px 14px}
+  .fi-row{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line-soft)}
+  .fi-row:last-child{border-bottom:none}
+  .fi-row .k{font-size:12px;color:var(--muted)}
+  .fi-row .v{font-size:13px;font-weight:700;color:var(--cream);text-align:right}
+  .fi-acts{display:flex;gap:9px;margin-top:16px}
+  .fi-acts a,.fi-acts button{flex:1;text-align:center;text-decoration:none;border:none;cursor:pointer;
+    border-radius:12px;padding:13px;font-size:13.5px;font-weight:800;font-family:inherit}
+  .fi-wpp{background:#1f7a4d;color:#fff}
+  .fi-close{background:transparent;border:1px solid var(--line)!important;color:var(--muted)}
+
   /* bottom nav */
   .nav{flex:0 0 auto;display:flex;border-top:1px solid var(--line-soft);background:var(--bg);
     padding:8px 12px calc(8px + env(safe-area-inset-bottom))}
   .nav button{flex:1;background:none;border:none;cursor:pointer;color:var(--muted);
-    display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0;font-size:11px;font-weight:700;transition:.15s}
+    display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0;font-size:10px;font-weight:700;transition:.15s}
   .nav button.on{color:var(--gold-lt)}
   .nav button svg{width:22px;height:22px}
 </style>
@@ -302,6 +351,23 @@
       </div>
       <div class="fol-list" id="folList"></div>
     </div>
+
+    <!-- ===== CLIENTES ===== -->
+    <div class="view" id="viewClientes">
+      <div class="chips" id="cliChips" style="padding-top:10px">
+        <button class="chip-f on" data-c="all"  onclick="setCliFilter('all')">Todos</button>
+        <button class="chip-f" data-c="miss" onclick="setCliFilter('miss')">Faltosos</button>
+        <button class="chip-f" data-c="gone" onclick="setCliFilter('gone')">Sumidos</button>
+      </div>
+      <div class="cli-search"><input id="cliQ" type="search" placeholder="Buscar por nome ou telefone" oninput="renderClientes()"></div>
+      <div class="cli-list" id="cliList"></div>
+    </div>
+  </div>
+
+  <!-- ===== FICHA DO CLIENTE ===== -->
+  <div class="sheet" id="ficha">
+    <div class="sheet-bg" onclick="closeFicha()"></div>
+    <div class="sheet-body" id="fichaBody"></div>
   </div>
 
   <div class="nav">
@@ -312,6 +378,10 @@
     <button id="navF" onclick="tab('fin')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M8 16v-4M12 16V9M16 16v-6"/></svg>
       Faturamento
+    </button>
+    <button id="navC" onclick="tab('cli')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/></svg>
+      Clientes
     </button>
     <button id="navT" onclick="tab('folgas')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
@@ -351,6 +421,7 @@ const MON_L=['janeiro','fevereiro','março','abril','maio','junho','julho','agos
 let sel=0, filter='all', period='dia', finBarber='all', folBarber=null;
 let ACCESS={role:'admin',barber_id:null};
 let BARBERS=[], CLOSURES=[], TIMEOFF=[], DAY_APPTS=[], SVCS=[], BH=[], CLIENTS=[];
+let CLIENT_STATS=[], cliFilter='all';
 let SLUG={}; // barber_id -> {name, slug, color, key}
 
 function dateFor(off){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+off);return d;}
@@ -394,12 +465,11 @@ async function loadRefs(){
     sb.from('time_off').select('*'),
     sb.from('services').select('*').eq('active',true).order('sort'),
     sb.from('business_hours').select('*'),
-    sb.from('appointments').select('customer_name,customer_phone,created_at').order('created_at',{ascending:false}).limit(300)
+    sb.rpc('client_stats')
   ]);
   BARBERS=bb.data||[];CLOSURES=cl.data||[];TIMEOFF=to.data||[];SVCS=sv.data||[];BH=bh.data||[];
-  const seen=new Set(); CLIENTS=[];
-  (cli.data||[]).forEach(c=>{const k=(c.customer_phone||'').replace(/\D/g,'');
-    if(k && !seen.has(k)){seen.add(k);CLIENTS.push({name:c.customer_name,phone:c.customer_phone});}});
+  CLIENT_STATS=(cli.data||[]).slice().sort((a,b)=>String(b.last_visit||'').localeCompare(String(a.last_visit||'')));
+  CLIENTS=CLIENT_STATS.map(c=>({name:c.name,phone:c.phone}));
   el('knownClients').innerHTML=CLIENTS.map(c=>`<option value="${c.name.replace(/"/g,'&quot;')}">${c.phone}</option>`).join('');
   el('qnService').innerHTML=SVCS.map(s2=>`<option value="${s2.id}">${s2.name} · ${s2.duration_min}min</option>`).join('');
   const bOpts=BARBERS.map(b2=>`<option value="${b2.id}">${b2.name}</option>`).join('');
@@ -468,15 +538,109 @@ function renderDayAction(d,reason,sun){
 
 /* ===== tabs ===== */
 function tab(t){
-  el('viewAgenda').classList.toggle('on',t==='agenda');
-  el('viewFin').classList.toggle('on',t==='fin');
-  el('viewFolgas').classList.toggle('on',t==='folgas');
-  el('navA').classList.toggle('on',t==='agenda');
-  el('navF').classList.toggle('on',t==='fin');
-  el('navT').classList.toggle('on',t==='folgas');
-  el('tabTitle').textContent=t==='agenda'?'Agenda':t==='fin'?'Faturamento':'Folgas';
+  const V={agenda:'viewAgenda',fin:'viewFin',folgas:'viewFolgas',cli:'viewClientes'};
+  const N={agenda:'navA',fin:'navF',folgas:'navT',cli:'navC'};
+  Object.keys(V).forEach(k=>el(V[k]).classList.toggle('on',k===t));
+  Object.keys(N).forEach(k=>{const b=el(N[k]); if(b) b.classList.toggle('on',k===t);});
+  el('tabTitle').textContent={agenda:'Agenda',fin:'Faturamento',folgas:'Folgas',cli:'Clientes'}[t];
   if(t==='fin') renderFin();
   if(t==='folgas') renderFolgas();
+  if(t==='cli') renderClientes();
+}
+
+/* ===== ficha do cliente ===== */
+function fmtAgo(iso){
+  if(!iso) return 'nunca veio';
+  const d=Math.floor((Date.now()-new Date(iso))/86400000);
+  if(d<=0) return 'hoje';
+  if(d===1) return 'ontem';
+  if(d<30) return 'há '+d+' dias';
+  const m=Math.round(d/30);
+  if(m<12) return 'há '+m+(m===1?' mês':' meses');
+  const y=Math.floor(m/12);
+  return 'há '+y+(y===1?' ano':' anos');
+}
+function fmtDay(iso){
+  if(!iso) return '—';
+  const d=new Date(iso);
+  return d.toLocaleDateString('pt-BR',{timeZone:TZ,day:'2-digit',month:'2-digit',year:'2-digit'});
+}
+function isMiss(c){ return c.no_shows>=2; }
+function isGone(c){ return c.visits>0 && !c.next_visit && c.last_visit && (Date.now()-new Date(c.last_visit))/86400000>60; }
+function isVip(c){ return c.visits>=10; }
+function waLink(phone){ const d=(phone||'').replace(/\D/g,''); return 'https://wa.me/'+(d.length<=11?'55'+d:d); }
+function normPk(phone){ const d=(phone||'').replace(/\D/g,''); return (d.length>=12&&d.slice(0,2)==='55')?d.slice(2):d; }
+
+function setCliFilter(f){
+  cliFilter=f;
+  document.querySelectorAll('#cliChips .chip-f').forEach(c=>c.classList.toggle('on',c.dataset.c===f));
+  renderClientes();
+}
+function renderClientes(){
+  const q=(el('cliQ').value||'').trim().toLowerCase();
+  let list=CLIENT_STATS.slice();
+  if(cliFilter==='miss') list=list.filter(isMiss);
+  if(cliFilter==='gone') list=list.filter(isGone);
+  if(q) list=list.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.phone||'').replace(/\D/g,'').includes(q.replace(/\D/g,'')));
+  if(!list.length){
+    const msg=cliFilter==='miss'?'Nenhum cliente com 2+ faltas.':cliFilter==='gone'?'Nenhum cliente sumido há mais de 2 meses.':(q?'Nenhum cliente encontrado.':'Os clientes aparecem aqui depois do primeiro agendamento.');
+    el('cliList').innerHTML=`<div class="empty"><div class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><h3>Sem clientes</h3><p>${msg}</p></div>`;
+    return;
+  }
+  el('cliList').innerHTML=list.map(c=>{
+    const tags=[];
+    if(isVip(c)) tags.push('<span class="tag vip">Fiel · '+c.visits+' cortes</span>');
+    if(isMiss(c)) tags.push('<span class="tag miss">Faltou '+c.no_shows+'x</span>');
+    if(isGone(c)) tags.push('<span class="tag gone">Sumido '+fmtAgo(c.last_visit)+'</span>');
+    if(c.next_visit) tags.push('<span class="tag soon">Volta '+fmtDay(c.next_visit)+'</span>');
+    const ac=isMiss(c)?'var(--bad)':(isVip(c)?'var(--gold)':'var(--gold-deep)');
+    return `<button class="cli-card" style="--ac:${ac}" onclick="openFicha('${c.phone_key}')">
+      <div class="cli-top">
+        <span class="cli-nm">${c.name||'—'}</span>
+        <span class="cli-tot">${fmt(c.total_cents/100)}</span>
+      </div>
+      <div class="cli-sub">${c.visits} atend. · última ${fmtAgo(c.last_visit)}</div>
+      ${tags.length?`<div class="cli-tags">${tags.join('')}</div>`:''}
+    </button>`;
+  }).join('');
+}
+function openFicha(pk){
+  const c=CLIENT_STATS.find(x=>x.phone_key===pk);
+  if(!c) return;
+  const tags=[];
+  if(isVip(c)) tags.push('<span class="tag vip">Cliente fiel</span>');
+  if(isMiss(c)) tags.push('<span class="tag miss">Faltou '+c.no_shows+'x</span>');
+  if(isGone(c)) tags.push('<span class="tag gone">Sumido</span>');
+  el('fichaBody').innerHTML=`
+    <div class="sheet-grip"></div>
+    <div class="fi-nm">${c.name||'—'}</div>
+    <div class="fi-ph">${c.phone||'—'}</div>
+    ${tags.length?`<div class="cli-tags" style="margin-top:10px">${tags.join('')}</div>`:''}
+    <div class="fi-grid">
+      <div class="fi-b"><b>${c.visits}</b><span>Atendimentos</span></div>
+      <div class="fi-b gold"><b>${fmt(c.total_cents/100)}</b><span>Total gasto</span></div>
+      <div class="fi-b ${c.no_shows?'bad':''}"><b>${c.no_shows}</b><span>Faltas</span></div>
+      <div class="fi-b"><b>${c.cancels}</b><span>Cancelamentos</span></div>
+    </div>
+    <div class="fi-rows">
+      <div class="fi-row"><span class="k">Última visita</span><span class="v">${c.last_visit?fmtDay(c.last_visit)+' · '+fmtAgo(c.last_visit):'—'}</span></div>
+      <div class="fi-row"><span class="k">Próximo horário</span><span class="v">${c.next_visit?fmtDay(c.next_visit)+' · '+hhmm(c.next_visit):'sem agendamento'}</span></div>
+      <div class="fi-row"><span class="k">Serviço preferido</span><span class="v">${c.top_service||'—'}</span></div>
+      <div class="fi-row"><span class="k">Ticket médio</span><span class="v">${c.visits?fmt((c.total_cents/100)/c.visits):'—'}</span></div>
+    </div>
+    <div class="fi-acts">
+      <a class="fi-wpp" href="${waLink(c.phone)}" target="_blank" rel="noopener">Chamar no WhatsApp</a>
+      <button class="fi-close" onclick="closeFicha()">Fechar</button>
+    </div>`;
+  el('ficha').classList.add('on');
+}
+function closeFicha(){ el('ficha').classList.remove('on'); }
+async function reloadClients(){
+  const {data}=await sb.rpc('client_stats');
+  CLIENT_STATS=(data||[]).slice().sort((a,b)=>String(b.last_visit||'').localeCompare(String(a.last_visit||'')));
+  CLIENTS=CLIENT_STATS.map(c=>({name:c.name,phone:c.phone}));
+  el('knownClients').innerHTML=CLIENTS.map(c=>`<option value="${(c.name||'').replace(/"/g,'&quot;')}">${c.phone}</option>`).join('');
+  if(el('viewClientes').classList.contains('on')) renderClientes();
 }
 
 /* ===== agenda ===== */
@@ -494,7 +658,7 @@ async function setStatus(id,st){
   const {error}=await sb.from('appointments').update({status:st}).eq('id',id);
   if(error){alert('Não foi possível atualizar.');return;}
   const a=DAY_APPTS.find(x=>x.id===id); if(a)a.status=st;
-  paintAgenda();
+  paintAgenda(); reloadClients();
 }
 let agReq=0;
 async function renderAgenda(){
@@ -540,7 +704,7 @@ function paintAgenda(){
     return {t:new Date(x.starts_at).getTime(), html:`<div class="appt ${x.status}" style="--ac:${B.color}">
       <div class="row">
         <div class="time"><b>${hhmm(x.starts_at)}</b><span>${hhmm(x.ends_at)}</span></div>
-        <div class="mid"><div class="cli">${x.customer_name}${x.id===nextId?'<span class="nexttag">Próximo</span>':''}</div>
+        <div class="mid"><div class="cli" onclick="openFicha('${normPk(x.customer_phone)}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px">${x.customer_name}${x.id===nextId?'<span class="nexttag">Próximo</span>':''}</div>
           <div class="srv">${x.services.name} · ${x.services.duration_min}min</div>
           <div class="who"><span class="d"></span>${B.name}</div></div>
         <div class="right"><div class="price">${fmt(x.services.price_cents/100)}</div><div class="chip ${x.status}">${LABEL[x.status]}</div></div>
@@ -761,7 +925,7 @@ async function qnBook(){
   if(!CLIENTS.find(x=>x.name===name)){CLIENTS.unshift({name,phone});
     el('knownClients').innerHTML=CLIENTS.map(c=>`<option value="${c.name.replace(/"/g,'&quot;')}">${c.phone}</option>`).join('');}
   el('qnName').value='';el('qnPhone').value='';
-  toggleQ('qNew');renderAgenda();
+  toggleQ('qNew');renderAgenda();reloadClients();
 }
 async function qbReloadSlots(){
   const d=dateFor(sel);
