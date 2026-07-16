@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Crect width=%27100%27 height=%27100%27 rx=%2722%27 fill=%27%230A0A0C%27/%3E%3Cpath d=%27M28 30 H72 V56 Q72 78 50 90 Q28 78 28 56 Z%27 fill=%27none%27 stroke=%27%23C9A24B%27 stroke-width=%274%27/%3E%3Ctext x=%2750%27 y=%2762%27 text-anchor=%27middle%27 font-family=%27Georgia%27 font-weight=%27700%27 font-size=%2726%27 fill=%27%23C9A24B%27%3EVH%3C/text%3E%3C/svg%3E">
+<meta name="theme-color" content="#0A0A0C">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>VH Barbershop — Agendamento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0A0C;
+    --panel:#141318;
+    --panel-2:#1B1A20;
+    --line:#2B2A33;
+    --line-soft:#222129;
+    --gold:#C9A24B;
+    --gold-lt:#EBD089;
+    --gold-deep:#8C6E2E;
+    --cream:#F3ECDD;
+    --muted:#9C948A;
+    --muted-2:#6F685F;
+    --grad-gold:linear-gradient(135deg,#EBD089 0%,#C9A24B 48%,#9A7A33 100%);
+    --ok:#2FA86A;
+    --shadow:rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:'Hanken Grotesk',system-ui,sans-serif;
+    background:#000;color:var(--cream);
+    display:flex;align-items:center;justify-content:center;min-height:100dvh;
+    background-image:radial-gradient(circle at 50% -10%, #1d1a16 0%, #000 65%);
+  }
+  .device{
+    width:100%;max-width:430px;height:100dvh;max-height:920px;
+    background:var(--bg);position:relative;overflow:hidden;
+    display:flex;flex-direction:column;
+    box-shadow:0 30px 90px rgba(0,0,0,.7), 0 0 0 1px rgba(201,162,75,.08);
+  }
+  @media(min-width:480px){ .device{border-radius:30px;height:880px} }
+
+  /* emblem */
+  .emblem{display:block}
+  .emblem text{font-family:'Cormorant Garamond',serif}
+
+  /* top bar */
+  .bar{
+    flex:0 0 auto;padding:18px 20px 12px;background:var(--bg);
+    display:flex;align-items:center;gap:14px;position:relative;z-index:20;
+  }
+  .back{
+    width:38px;height:38px;flex:0 0 auto;border:1px solid var(--line);
+    background:var(--panel);border-radius:50%;display:grid;place-items:center;
+    cursor:pointer;color:var(--cream);transition:.18s;
+  }
+  .back:hover{background:var(--gold);color:#15110a;border-color:var(--gold)}
+  .back.hide{opacity:0;pointer-events:none}
+  .bar-mid{flex:1;min-width:0}
+  .eyebrow{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);font-weight:700}
+  .step-name{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;line-height:1;margin-top:2px}
+  .progress{display:flex;gap:5px;margin-top:9px}
+  .progress i{height:3px;flex:1;background:var(--line);border-radius:2px;transition:.3s}
+  .progress i.on{background:var(--grad-gold)}
+
+  .screen{flex:1;overflow-y:auto;overflow-x:hidden;position:relative}
+  .view{padding:6px 20px 24px;display:none;animation:rise .42s cubic-bezier(.2,.7,.2,1)}
+  .view.active{display:block}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  @media(prefers-reduced-motion:reduce){.view,.seal,.glow{animation:none!important}}
+
+  /* ---------- HOME ---------- */
+  .home{padding:0;display:none}
+  .home.active{display:flex;flex-direction:column;height:100%}
+  .hero{
+    position:relative;flex:1;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;padding:40px 30px;
+    background:radial-gradient(120% 80% at 50% 18%, #1a1712 0%, #0A0A0C 70%);
+    overflow:hidden;
+  }
+  .hero .emblem{width:104px;height:auto;filter:drop-shadow(0 6px 20px rgba(201,162,75,.22))}
+  .hero h1{
+    font-family:'Cormorant Garamond',serif;font-weight:600;font-size:42px;line-height:.96;
+    letter-spacing:.01em;margin-top:8px;
+    background:var(--grad-gold);-webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .hero .loc{
+    font-size:11px;letter-spacing:.42em;text-transform:uppercase;color:var(--muted);
+    margin-top:10px;
+  }
+  .hero .rule{width:46px;height:1px;background:var(--gold-deep);margin:18px auto}
+  .hero .tag{font-size:13.5px;color:var(--cream);opacity:.86;line-height:1.6;max-width:30ch}
+  .hero .creds{display:flex;align-items:center;gap:24px;margin-top:22px}
+  .hero .creds .div{width:1px;height:32px;background:var(--gold-deep);opacity:.55}
+  .hero .creds .stat{text-align:center}
+  .hero .creds b{display:block;font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;color:var(--gold-lt);line-height:1}
+  .hero .creds span{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-top:5px;display:block}
+  .home-foot{padding:18px 26px 26px;background:var(--bg)}
+  .home-foot .addr{
+    text-align:center;font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);
+    margin-bottom:16px;line-height:1.6;
+  }
+
+  /* primary button (gold) */
+  .cta{
+    width:100%;border:none;cursor:pointer;background:var(--grad-gold);color:#15110a;
+    font-family:'Hanken Grotesk';font-weight:800;font-size:15px;letter-spacing:.02em;
+    padding:17px;border-radius:14px;transition:.18s;
+    display:flex;align-items:center;justify-content:center;gap:9px;
+    box-shadow:0 8px 24px rgba(201,162,75,.18);
+  }
+  .cta:hover{filter:brightness(1.07)}
+  .cta:active{transform:translateY(1px)}
+  .cta:disabled{background:var(--panel-2);color:var(--muted-2);box-shadow:none;cursor:not-allowed}
+  .cta .arr{transition:.2s}
+  .cta:not(:disabled):hover .arr{transform:translateX(4px)}
+
+  /* option cards */
+  .opt{
+    width:100%;text-align:left;background:var(--panel);border:1px solid var(--line-soft);
+    border-radius:14px;padding:16px;margin-bottom:11px;cursor:pointer;
+    display:flex;align-items:center;gap:15px;transition:.16s;
+  }
+  .opt:hover{border-color:var(--line);transform:translateY(-1px)}
+  .opt.sel{border-color:var(--gold);background:var(--panel-2);box-shadow:0 0 0 1px var(--gold)}
+  .opt .ico{width:46px;height:46px;flex:0 0 auto;border-radius:12px;background:#0e0d11;border:1px solid var(--line-soft);display:grid;place-items:center;color:var(--gold);transition:.16s}
+  .opt.sel .ico{background:var(--grad-gold);border-color:var(--gold);color:#15110a}
+  .opt .body{flex:1;min-width:0;display:flex;flex-direction:column}
+  .opt .t{display:block;font-weight:700;font-size:15px;line-height:1.25;color:var(--cream)}
+  .opt .s{display:block;font-size:12px;color:var(--muted);margin-top:4px;line-height:1.35}
+  .opt .meta{flex:0 0 auto;text-align:right;display:flex;flex-direction:column;align-items:flex-end;padding-left:4px}
+  .opt .price{font-family:'Space Mono',monospace;font-weight:700;font-size:15px;color:var(--gold-lt);white-space:nowrap}
+  .opt .dur{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);margin-top:3px;white-space:nowrap}
+
+  .av{
+    width:46px;height:46px;flex:0 0 auto;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #211d16, #0c0b0e);
+    color:var(--gold-lt);display:grid;place-items:center;
+    font-family:'Cormorant Garamond',serif;font-weight:700;font-size:18px;
+    border:1.5px solid var(--gold);letter-spacing:.02em;
+  }
+  .av.any{border-color:var(--line);color:var(--muted)}
+  .opt.sel .av{background:var(--grad-gold);color:#15110a;border-color:var(--gold)}
+
+  .section-note{font-size:12.5px;color:var(--muted);margin:2px 0 16px;line-height:1.5}
+  .cat-head{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);font-weight:700;margin:18px 0 11px;display:flex;align-items:center;gap:10px}
+  .cat-head::after{content:"";flex:1;height:1px;background:var(--line-soft)}
+  .cat-head:first-of-type{margin-top:2px}
+
+  /* dates */
+  .dates{display:flex;gap:9px;overflow-x:auto;padding:4px 0 14px;scrollbar-width:none}
+  .dates::-webkit-scrollbar{display:none}
+  .day{
+    flex:0 0 auto;width:60px;border:1px solid var(--line-soft);background:var(--panel);
+    border-radius:13px;padding:11px 0;text-align:center;cursor:pointer;transition:.16s;
+  }
+  .day:hover{border-color:var(--line)}
+  .day.sel{background:var(--grad-gold);border-color:var(--gold);color:#15110a}
+  .day.off{opacity:.28;pointer-events:none}
+  .day .dow{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--muted)}
+  .day.sel .dow{color:#3a2c0c}
+  .day .num{font-family:'Hanken Grotesk',sans-serif;font-size:22px;font-weight:700;line-height:1.1;margin-top:3px;color:var(--cream);letter-spacing:-.01em}
+  .day.sel .num{color:#15110a}
+  .day .mon{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+  .day.sel .mon{color:#3a2c0c}
+
+  .slot-head{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);font-weight:700;margin:18px 0 10px;display:flex;align-items:center;gap:10px}
+  .slot-head::after{content:"";flex:1;height:1px;background:var(--line-soft)}
+  .slots{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+  .slot{
+    border:1px solid var(--line-soft);background:var(--panel);border-radius:11px;
+    padding:13px 0;text-align:center;cursor:pointer;transition:.14s;
+    font-family:'Hanken Grotesk',sans-serif;font-weight:600;font-size:15.5px;letter-spacing:.02em;color:var(--cream);
+  }
+  .slot:hover{border-color:var(--gold);color:var(--gold-lt)}
+  .slot.sel{background:var(--grad-gold);border-color:var(--gold);color:#15110a}
+  .slot.busy{background:transparent;border-style:dashed;border-color:var(--line-soft);color:var(--muted-2);cursor:not-allowed;text-decoration:line-through}
+  .slot.busy:hover{color:var(--muted-2)}
+  .closed-note{text-align:center;padding:34px 18px;border:1px dashed var(--line);border-radius:14px;background:var(--panel);margin-top:4px}
+  .closed-note .lk{width:46px;height:46px;margin:0 auto 12px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;color:var(--gold-deep)}
+  .closed-note b{display:block;font-size:18px;font-weight:800;color:var(--cream)}
+  .closed-note span{display:block;font-size:13px;color:var(--gold-lt);margin-top:6px}
+  .closed-note small{display:block;font-size:12px;color:var(--muted);margin-top:12px}
+  .day.cl{opacity:.5}
+  .day.cl .num{color:var(--muted-2)}
+
+  /* form */
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:var(--muted);margin-bottom:7px}
+  .field input{
+    width:100%;border:1px solid var(--line);background:var(--panel);border-radius:12px;
+    padding:15px;font-size:16px;font-family:inherit;color:var(--cream);transition:.16s;
+  }
+  .field input::placeholder{color:var(--muted-2)}
+  .field input:focus{outline:none;border-color:var(--gold);background:var(--panel-2);box-shadow:0 0 0 3px rgba(201,162,75,.12)}
+  .recap{background:var(--panel);border:1px solid var(--line-soft);border-radius:14px;padding:4px 16px;margin-bottom:22px}
+  .recap .row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line-soft)}
+  .recap .row:last-child{border-bottom:none}
+  .recap .k{font-size:12px;color:var(--muted);letter-spacing:.04em}
+  .recap .v{font-weight:600;font-size:14px;text-align:right;color:var(--cream)}
+  .recap .v small{font-family:'Space Mono',monospace;color:var(--muted);font-weight:400;display:block;font-size:11px}
+
+  /* confirmation */
+  .done{text-align:center;padding-top:8px}
+  .seal{
+    width:74px;height:74px;margin:6px auto 16px;border-radius:50%;
+    background:var(--grad-gold);color:#15110a;display:grid;place-items:center;
+    box-shadow:0 10px 28px rgba(201,162,75,.3);animation:pop .5s cubic-bezier(.2,1.4,.4,1) both;
+  }
+  @keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+  .done h2{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:600;line-height:1.04;color:var(--cream)}
+  .done .sub{font-size:13.5px;color:var(--muted);margin-top:8px;line-height:1.5;max-width:32ch;margin-inline:auto}
+
+  .ticket{position:relative;margin:22px 0 18px;background:var(--panel);border:1px solid var(--line-soft);border-radius:16px;box-shadow:0 16px 40px rgba(0,0,0,.5);text-align:left;overflow:hidden}
+  .ticket .tpole{height:4px;background:var(--grad-gold)}
+  .ticket .thead{background:radial-gradient(120% 140% at 0% 0%, #211c12, #0e0d10);color:var(--cream);padding:16px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line-soft)}
+  .ticket .thead .te{width:46px;height:auto}
+  .ticket .thead .ti{text-align:right}
+  .ticket .thead .ti b{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:18px;display:block;color:var(--gold-lt)}
+  .ticket .thead .ti span{font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:var(--muted)}
+  .perf{height:18px;position:relative;background:var(--panel)}
+  .perf::before,.perf::after{content:"";position:absolute;top:50%;transform:translateY(-50%);width:24px;height:24px;border-radius:50%;background:var(--bg)}
+  .perf::before{left:-12px}.perf::after{right:-12px}
+  .perf .dash{position:absolute;left:18px;right:18px;top:50%;border-top:2px dashed var(--line)}
+  .tbody{padding:6px 22px 20px}
+  .tline{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px dotted var(--line)}
+  .tline:last-child{border-bottom:none}
+  .tline .tk{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:700;padding-top:3px}
+  .tline .tv{font-family:'Space Mono',monospace;font-weight:700;font-size:14px;text-align:right;color:var(--cream)}
+  .tline .tv small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
+  .ttotal{background:#0e0d10;margin:8px -22px -20px;padding:14px 22px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line-soft)}
+  .ttotal .tk{font-size:11px;letter-spacing:.2em;text-transform:uppercase;font-weight:700;color:var(--muted)}
+  .ttotal .tv{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:26px;color:var(--gold-lt)}
+
+  .wpp{width:100%;border:none;cursor:pointer;background:#1f7a4d;color:#fff;font-weight:700;font-size:15px;padding:16px;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:10px;transition:.16s}
+  .wpp:hover{background:#19663f}
+  .ghost{width:100%;background:transparent;border:none;cursor:pointer;color:var(--muted);font-weight:600;font-size:13px;padding:14px;margin-top:4px;text-decoration:underline;text-underline-offset:3px}
+  .ghost:hover{color:var(--cream)}
+
+  .foot{flex:0 0 auto;padding:14px 20px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(10,10,12,0),var(--bg) 26%);position:relative;z-index:15}
+  .foot.hide{display:none}
+  .foot .price-tag{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:11px;padding:0 2px}
+  .foot .price-tag .lab{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .foot .price-tag .val{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:24px;color:var(--gold-lt)}
+  .foot .price-tag .val small{font-family:'Hanken Grotesk';font-size:11px;color:var(--muted);font-weight:600}
+</style>
+</head>
+<body>
+<div class="device" id="device">
+
+  <!-- shared emblem (defines gradient #ge once for the whole page) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="ge" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#F2DC95"/>
+        <stop offset=".5" stop-color="#C9A24B"/>
+        <stop offset="1" stop-color="#86692C"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <!-- ============ HOME ============ -->
+  <section class="home active" id="home">
+    <div class="hero">
+      <svg class="emblem" viewBox="0 35 100 82">
+        <path d="M22 40 H78 V66 Q78 93 50 109 Q22 93 22 66 Z" fill="none" stroke="url(#ge)" stroke-width="2.4"/>
+        <path d="M27 45 H73 V65 Q73 88 50 101 Q27 88 27 65 Z" fill="none" stroke="url(#ge)" stroke-width="1"/>
+        <text x="50" y="79" text-anchor="middle" font-weight="700" font-size="30" fill="url(#ge)">VH</text>
+      </svg>
+      <h1>Barbershop</h1>
+      <div class="loc">Rio Preto</div>
+      <div class="rule"></div>
+      <p class="tag">Barbearia &amp; visagismo. Uma experiência sob medida, do corte ao último detalhe.</p>
+      <div class="creds">
+        <div class="stat"><b>+5 mil</b><span>clientes</span></div>
+        <div class="div"></div>
+        <div class="stat"><b>+6 anos</b><span>de ofício</span></div>
+      </div>
+    </div>
+    <div class="home-foot">
+      <div id="myBooking"></div>
+      <div class="addr">RUA MARCOS VILELA FILHO, 115 — S. J. RIO PRETO<br>SEG 14:30–19H · TER–SEX 9–12H / 13–19H · SÁB 8:30–17H</div>
+      <button class="cta" onclick="start()">Agendar horário <span class="arr">→</span></button>
+    </div>
+  </section>
+
+  <!-- ============ GERENCIAR HORÁRIO ============ -->
+  <section class="mg" id="manage">
+    <div class="mg-top" id="mgBody"></div>
+    <div class="mg-foot" id="mgFoot"></div>
+  </section>
+
+  <!-- ============ FLOW ============ -->
+  <div class="bar" id="bar" style="display:none">
+    <div class="back" id="back" onclick="back()" aria-label="Voltar">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </div>
+    <div class="bar-mid">
+      <div class="eyebrow" id="eyebrow">Passo 1 de 5</div>
+      <div class="step-name" id="stepName">Serviço</div>
+    </div>
+  </div>
+  <div class="progress" id="progress" style="display:none;padding:0 20px 14px;background:var(--bg)">
+    <i></i><i></i><i></i><i></i><i></i>
+  </div>
+
+  <div class="screen" id="screen" style="display:none">
+    <div class="view" id="v1">
+      <p class="section-note">Toque no serviço que você quer fazer hoje.</p>
+      <div id="services"></div>
+    </div>
+    <div class="view" id="v2">
+      <p class="section-note">Escolha com quem você quer cortar — Vitor Hugo ou João. Sem preferência? A gente encaixa no primeiro disponível.</p>
+      <div id="barbers"></div>
+    </div>
+    <div class="view" id="v3">
+      <p class="section-note">Escolha o dia. Domingos fechado · segunda atendemos a partir das 14h30.</p>
+      <div class="dates" id="dates"></div>
+      <div id="slotArea"></div>
+    </div>
+    <div class="view" id="v4">
+      <p class="section-note">Quase lá. Confirme seus dados pra reservarmos.</p>
+      <div class="recap" id="recap"></div>
+      <div class="field"><label for="nm">Seu nome</label><input id="nm" type="text" placeholder="Como te chamamos?" oninput="checkForm()" autocomplete="name"></div>
+      <div class="field"><label for="ph">WhatsApp</label><input id="ph" type="tel" placeholder="(17) 9 9999-9999" oninput="checkForm()" autocomplete="tel"></div>
+    </div>
+    <div class="view" id="v5">
+      <div class="done">
+        <div class="seal"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <h2>Horário reservado</h2>
+        <p class="sub">Guardamos sua cadeira. Confirme pelo WhatsApp pra receber o lembrete.</p>
+        <div class="ticket" id="ticket"></div>
+        <button class="wpp" onclick="sendWpp()">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-2.8.8.8-2.8-.2-.3A8 8 0 1 1 12 20zm4.5-5.9c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.5.1l-.7.9c-.1.2-.3.2-.5.1a6.5 6.5 0 0 1-3.2-2.8c-.2-.4.2-.4.6-1.2.1-.2 0-.3 0-.5l-.7-1.7c-.2-.4-.4-.4-.5-.4h-.5c-.2 0-.5.1-.7.3-.8.8-.9 1.9-.5 3a8.3 8.3 0 0 0 3.6 4 8 8 0 0 0 3.3 1c.6 0 1.4-.3 1.6-.8.2-.4.2-.9.1-1z"/></svg>
+          Confirmar no WhatsApp
+        </button>
+        <button class="ghost" onclick="openManage(state.token)">Cancelar ou remarcar meu horário</button>
+        <button class="ghost" onclick="reset()">Fazer novo agendamento</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot hide" id="foot">
+    <div class="price-tag" id="priceTag" style="display:none">
+      <span class="lab">Total</span>
+      <span class="val" id="footPrice">—</span>
+    </div>
+    <button class="cta" id="next" onclick="next()" disabled>Continuar <span class="arr">→</span></button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ================= CONFIG — COLE SUAS CHAVES AQUI ================= */
+const SB_URL = 'https://ddehzfbderumdfxkvvme.supabase.co';        // ex: https://abcdefgh.supabase.co
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkZWh6ZmJkZXJ1bWRmeGt2dm1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5OTIxNzQsImV4cCI6MjA5OTU2ODE3NH0.0Y7LDDQlPuYNrVZLpExTwppG7NnO0_50hILsVKvwje0';   // Settings → API → anon public
+/* ================================================================== */
+
+const SHOP_PHONE = '5517997195589';
+const TZ = 'America/Sao_Paulo';
+
+/* guarda de configuração: evita app quebrado se as chaves não foram coladas */
+if(SB_URL.includes('COLE_AQUI') || SB_KEY.includes('COLE_AQUI')){
+  document.body.innerHTML = `<div style="min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0A0A0C;color:#F3ECDD;font-family:'Hanken Grotesk',system-ui,sans-serif;text-align:center;padding:34px">
+    <div style="width:64px;height:64px;border:1.5px solid #C9A24B;border-radius:50%;display:grid;place-items:center;color:#EBD089;font-weight:800;margin-bottom:18px">VH</div>
+    <div style="font-size:20px;font-weight:800">Quase lá</div>
+    <div style="font-size:13.5px;color:#9C948A;margin-top:8px;max-width:34ch;line-height:1.55">Falta conectar o banco: cole a <b style="color:#EBD089">Project URL</b> e a <b style="color:#EBD089">anon key</b> do Supabase no bloco CONFIG deste arquivo.</div>
+  </div>`;
+  throw new Error('Supabase não configurado');
+}
+
+const sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+const el = id => document.getElementById(id);
+const pad = n => String(n).padStart(2,'0');
+const DOW=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+const MON=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const MON_L=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const TITLES = ['','Serviço','Profissional','Data e horário','Seus dados','Confirmação'];
+
+const state = {service:null, barber:null, date:null, slotIso:null, time:null, name:'', phone:'', token:null};
+const MYKEY='vh_tok';
+let MANAGE=null, RESCHED=null;
+let step = 0;
+let SERVICES=[], BARBERS=[], CLOSURES=[], TIMEOFF=[], BH=[];
+let dateList=[], views=[];
+let lastDatesBarber=null, slotReq=0; const slotCache=new Map();
+
+function dateKey(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
+function fmtDur(m){ return m>=60 ? `${Math.floor(m/60)}h${m%60?String(m%60).padStart(2,'0'):''}` : `${m}min`; }
+function price(s){ return 'R$ ' + (s.price_cents/100).toLocaleString('pt-BR',{minimumFractionDigits:s.price_cents%100?2:0}); }
+function fmtDate(d){ return `${DOW[d.getDay()]}, ${d.getDate()} de ${MON_L[d.getMonth()]}`; }
+function hhmm(iso){ return new Date(iso).toLocaleTimeString('pt-BR',{timeZone:TZ,hour:'2-digit',minute:'2-digit'}); }
+
+const ICONS = {
+  scissors:'<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.1 16.1M14.5 12.5L20 20M8.1 7.9L11 11"/>',
+  razor:'<path d="M3 7l8 8M14 4l6 6-8 8a3 3 0 0 1-4 0l-2-2a3 3 0 0 1 0-4z"/>',
+  star:'<path d="M12 3l2.5 5.5L20 9.5l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-1z"/>',
+  drop:'<path d="M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z"/>',
+  spark:'<path d="M12 2l1.7 5.1L19 9l-5.3 1.9L12 16l-1.7-5.1L5 9l5.3-1.9z"/>',
+  brow:'<path d="M3 14c4-5 14-5 18 0"/><circle cx="12" cy="11" r="1.3"/>',
+  line:'<path d="M4 18h16M7 14l3-8 3 8"/>'
+};
+function icoFor(s){
+  const n=(s.name||'').toLowerCase(), c=(s.category||'');
+  if(c==='Combos') return 'star';
+  if(n.includes('barboterapia')||n.includes('hidrata')) return 'drop';
+  if(n.includes('sobrancelha')) return 'brow';
+  if(n.includes('pezinho')) return 'line';
+  if(n.includes('barba')) return 'razor';
+  if(c==='Tratamentos'||n.includes('selagem')||n.includes('esfolia')||n.includes('depila')) return 'spark';
+  return 'scissors';
+}
+
+/* ---------- carga inicial ---------- */
+async function loadAll(){
+  const [sv,bb,cl,to,bh] = await Promise.all([
+    sb.from('services').select('*').eq('active',true).order('sort'),
+    sb.from('barbers').select('*').eq('active',true).order('sort'),
+    sb.from('closures').select('*'),
+    sb.from('time_off').select('*'),
+    sb.from('business_hours').select('*')
+  ]);
+  if(sv.error||bb.error){ alert('Erro ao carregar dados. Verifique as chaves do Supabase.'); console.error(sv.error||bb.error); return; }
+  SERVICES=sv.data; BARBERS=bb.data; CLOSURES=cl.data||[]; TIMEOFF=to.data||[]; BH=bh.data||[];
+  renderServices(); renderBarbers();
+}
+
+function closureReason(d){
+  if(d.getDay()===0) return 'Fechado aos domingos';
+  const c=CLOSURES.find(x=>x.date===dateKey(d));
+  return c?(c.reason||'Fechado'):null;
+}
+function barberOffByRow(b,d){
+  const dayStart=new Date(d); dayStart.setHours(0,0,0,0);
+  const dayEnd=new Date(d); dayEnd.setHours(23,59,59,999);
+  const t=TIMEOFF.find(x=>x.barber_id===b.id && new Date(x.starts_at)<=dayEnd && new Date(x.ends_at)>=dayStart);
+  return t?(t.reason||'Indisponível'):null;
+}
+function dayReasonFor(d){
+  const shop=closureReason(d); if(shop) return {kind:'shop',txt:shop};
+  const b=state.barber; if(!b) return null;
+  if(b.any){
+    const offs=BARBERS.map(x=>barberOffByRow(x,d));
+    if(offs.every(o=>o)) return {kind:'barber',txt:'Nenhum barbeiro disponível nesse dia'};
+    return null;
+  }
+  const off=barberOffByRow(b,d);
+  if(off) return {kind:'barber',txt:`${b.name.split(' ')[0]} · ${off}`};
+  return null;
+}
+
+/* ---------- navegação ---------- */
+function start(){ el('home').classList.remove('active'); el('bar').style.display='flex'; el('progress').style.display='flex'; el('screen').style.display='block'; el('foot').classList.remove('hide'); go(1); }
+function go(n){
+  step=n;
+  views.forEach((v,i)=>{ if(v) v.classList.toggle('active', i===n); });
+  el('eyebrow').textContent = RESCHED ? 'Remarcar' : `Passo ${n} de 5`;
+  el('stepName').textContent = RESCHED ? 'Novo horário' : TITLES[n];
+  [...el('progress').children].forEach((b,i)=>b.classList.toggle('on', i<n));
+  el('back').classList.toggle('hide', RESCHED ? false : n<=1);
+  el('screen').scrollTop=0;
+  const showFoot = n>=1 && n<=4;
+  el('foot').classList.toggle('hide', !showFoot);
+  el('priceTag').style.display = (state.service && n<=4) ? 'flex' : 'none';
+  if(state.service) el('footPrice').innerHTML = price(state.service) + (n===4 ? `<small> a pagar na barbearia</small>` : ``);
+  const labels={1:'Escolher profissional',2:'Ver horários',3:'Continuar',4:'Reservar horário'};
+  el('next').innerHTML = (RESCHED && n===3) ? 'Confirmar novo horário <span class="arr">→</span>' : `${labels[n]||'Continuar'} <span class="arr">→</span>`;
+  if(n===3) ensureDates();
+  updateGate();
+}
+async function next(){
+  if(el('next').disabled) return;
+  if(RESCHED && step===3){ await doReschedule(); return; }
+  if(step===4){ await doBook(); return; }
+  if(step===3) buildRecap();
+  go(step+1);
+}
+function back(){ if(RESCHED){ const t=RESCHED; RESCHED=null; openManage(t); return; } if(step>1) go(step-1); }
+function updateGate(){
+  let ok=false;
+  if(step===1) ok=!!state.service;
+  else if(step===2) ok=!!state.barber;
+  else if(step===3) ok=!!(state.date && state.slotIso);
+  else if(step===4) ok=!!(state.name.trim() && state.phone.trim().length>=8);
+  el('next').disabled=!ok;
+}
+function checkForm(){ state.name=el('nm').value; state.phone=el('ph').value; updateGate(); }
+
+/* ---------- render ---------- */
+function renderServices(){
+  const cats=[...new Set(SERVICES.map(s=>s.category))];
+  el('services').innerHTML = cats.map(cat=>{
+    const items=SERVICES.filter(s=>s.category===cat);
+    return `<div class="cat-head">${cat}</div>` + items.map(s=>`
+      <button class="opt" data-id="${s.id}" onclick="pickService('${s.id}')">
+        <span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[icoFor(s)]}</svg></span>
+        <span class="body"><span class="t">${s.name}</span><span class="s">${s.description||''}</span></span>
+        <span class="meta"><span class="price">${price(s)}</span><span class="dur">${fmtDur(s.duration_min)}</span></span>
+      </button>`).join('');
+  }).join('');
+}
+function pickService(id){
+  state.service=SERVICES.find(s=>s.id===id);
+  document.querySelectorAll('#services .opt').forEach(o=>o.classList.toggle('sel',o.dataset.id===id));
+  el('priceTag').style.display='flex';
+  el('footPrice').innerHTML=price(state.service);
+  updateGate();
+}
+function renderBarbers(){
+  const list=[...BARBERS.map(b=>({...b, initials:b.name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()})),
+              {id:'any', any:true, name:'Sem preferência', sp:'O primeiro que estiver livre', initials:'★'}];
+  el('barbers').innerHTML = list.map(b=>`
+    <button class="opt" data-id="${b.id}" onclick="pickBarber('${b.id}')">
+      <span class="av ${b.any?'any':''}">${b.initials}</span>
+      <span class="body"><span class="t">${b.name}</span><span class="s">${b.any?b.sp:'Cortes, barba e visagismo'}</span></span>
+    </button>`).join('');
+  window.__blist=list;
+}
+function pickBarber(id){
+  state.barber=window.__blist.find(b=>String(b.id)===String(id));
+  document.querySelectorAll('#barbers .opt').forEach(o=>o.classList.toggle('sel',o.dataset.id===String(id)));
+  updateGate();
+}
+
+function renderDates(){
+  dateList=[]; let d=new Date();
+  while(dateList.length<12){ if(dateList.length>0) d.setDate(d.getDate()+1); dateList.push(new Date(d)); }
+  el('dates').innerHTML=dateList.map((dd,i)=>{
+    const r=dayReasonFor(dd);
+    return `<button class="day ${r?'cl':''}" data-i="${i}" onclick="pickDate(${i})">
+      <div class="dow">${DOW[dd.getDay()]}</div><div class="num">${dd.getDate()}</div><div class="mon">${MON[dd.getMonth()]}</div>
+    </button>`;
+  }).join('');
+  const first=dateList.findIndex(dd=>!dayReasonFor(dd));
+  pickDate(first>=0?first:0);
+}
+function pickDate(i){
+  const same = state.date && dateKey(dateList[i])===dateKey(state.date);
+  state.date=dateList[i];
+  if(!same){ state.slotIso=null; state.time=null; }
+  document.querySelectorAll('#dates .day').forEach(x=>x.classList.toggle('sel',+x.dataset.i===i));
+  renderSlots(i); updateGate();
+}
+function ensureDates(){
+  const bid=state.barber?String(state.barber.id):'';
+  if(bid!==lastDatesBarber || !dateList.length){ lastDatesBarber=bid; renderDates(); return; }
+  const i=state.date? dateList.findIndex(dd=>dateKey(dd)===dateKey(state.date)) : -1;
+  if(i<0){ renderDates(); return; }
+  document.querySelectorAll('#dates .day').forEach(x=>x.classList.toggle('sel',+x.dataset.i===i));
+  renderSlots(i); updateGate();
+}
+
+function gridForDay(d,dur){
+  const wd=d.getDay(), out=[];
+  const ivs=BH.filter(h=>h.weekday===wd).sort((x,y)=>String(x.opens).localeCompare(String(y.opens)));
+  if(!ivs.length) return out;
+  const lastClose=String(ivs[ivs.length-1].closes);
+  ivs.forEach(h=>{
+    const [oh,om]=String(h.opens).split(':').map(Number);
+    const [ch,cm]=String(h.closes).split(':').map(Number);
+    const isLast=String(h.closes)===lastClose;
+    let t=oh*60+om; const end=ch*60+cm;
+    while(isLast ? t<=end : t+dur<=end){ out.push(String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')); t+=40; }
+  });
+  return out;
+}
+async function renderSlots(i){
+  const d=dateList[i]; const myReq=++slotReq;
+  const r=dayReasonFor(d);
+  if(r){
+    el('slotArea').style.opacity='1';
+    el('slotArea').innerHTML=`<div class="closed-note">
+      <div class="lk"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+      <b>${r.kind==='shop'?'Fechado':'Indisponível'}</b><span>${r.txt}</span><small>Escolha outro dia disponível acima.</small></div>`;
+    return;
+  }
+  const grid=gridForDay(d,state.service.duration_min);
+  if(!grid.length){
+    el('slotArea').style.opacity='1';
+    el('slotArea').innerHTML=`<div class="closed-note"><b>Sem horários</b><span>Não atendemos nesse dia.</span><small>Escolha outro dia acima.</small></div>`;
+    state.time=null; state.slotIso=null; updateGate(); return;
+  }
+  const dk=dateKey(d);
+  const targets = state.barber.any ? BARBERS.filter(b=>!barberOffByRow(b,d)) : [state.barber];
+  const ck = targets.map(b=>b.id).join(',')+'|'+state.service.id+'|'+dk;
+  let set; const cached=slotCache.get(ck);
+  if(cached && Date.now()-cached.at<45000){ set=cached.set; }
+  else{
+    if(!el('slotArea').querySelector('.slot'))
+      el('slotArea').innerHTML=`<div class="closed-note" style="border-style:solid"><b>Carregando horários…</b></div>`;
+    else el('slotArea').style.opacity='.45';
+    const results = await Promise.all(targets.map(b=>
+      sb.rpc('get_available_slots',{p_barber_id:b.id,p_service_id:state.service.id,p_date:dk})
+    ));
+    if(myReq!==slotReq) return;
+    set=new Map();
+    results.forEach(res=>{ (res.data||[]).forEach(row=>{ const t=hhmm(row.slot); if(!set.has(t)) set.set(t,row.slot); }); });
+    slotCache.set(ck,{at:Date.now(),set});
+  }
+  if(myReq!==slotReq) return;
+  el('slotArea').style.opacity='1';
+  window.__slotmap=set;
+  if(state.time && set.has(state.time)) state.slotIso=set.get(state.time);
+  else { state.time=null; state.slotIso=null; }
+  if(!set.size && grid.every(t=>{const [h,m]=t.split(':').map(Number);const x=new Date(d);x.setHours(h,m,0,0);return x<new Date();})){
+    el('slotArea').innerHTML=`<div class="closed-note"><b>Sem horários</b><span>Os horários de hoje já passaram.</span><small>Escolha outro dia acima.</small></div>`;
+    updateGate(); return;
+  }
+  const cell=t=>{
+    if(set.has(t)) return `<button class="slot ${t===state.time?'sel':''}" onclick="pickTime('${t}')" data-t="${t}">${t}</button>`;
+    return `<button class="slot busy" disabled>${t}</button>`;
+  };
+  const am=grid.filter(t=>+t.split(':')[0]<12), pm=grid.filter(t=>+t.split(':')[0]>=12);
+  el('slotArea').innerHTML=(am.length?`<div class="slot-head">Manhã</div><div class="slots">${am.map(cell).join('')}</div>`:'')+
+                           (pm.length?`<div class="slot-head">Tarde</div><div class="slots">${pm.map(cell).join('')}</div>`:'');
+  updateGate();
+}
+function pickTime(t){
+  state.time=t; state.slotIso=window.__slotmap.get(t);
+  document.querySelectorAll('.slot').forEach(s=>s.classList.toggle('sel',s.dataset.t===t));
+  updateGate();
+}
+
+function buildRecap(){
+  const s=state;
+  el('recap').innerHTML=`
+    <div class="row"><span class="k">Serviço</span><span class="v">${s.service.name}<small>${fmtDur(s.service.duration_min)}</small></span></div>
+    <div class="row"><span class="k">Barbeiro</span><span class="v">${s.barber.any?'Sem preferência':s.barber.name}</span></div>
+    <div class="row"><span class="k">Quando</span><span class="v">${fmtDate(s.date)}<small>${s.time}</small></span></div>
+    <div class="row"><span class="k">Valor</span><span class="v">${price(s.service)}<small>na barbearia</small></span></div>`;
+}
+
+/* ---------- reservar de verdade ---------- */
+async function doBook(){
+  el('next').disabled=true;
+  el('next').innerHTML='Reservando…';
+  const {data,error} = await sb.rpc('book_appointment',{
+    p_barber_id: state.barber.any? null : state.barber.id,
+    p_service_id: state.service.id,
+    p_start: state.slotIso,
+    p_customer_name: state.name,
+    p_customer_phone: state.phone
+  });
+  if(error){
+    el('next').innerHTML='Reservar horário <span class="arr">→</span>';
+    el('next').disabled=false;
+    const msg=(error.message||'').includes('ocupado')?'Esse horário acabou de ser ocupado. Escolha outro.':'Não foi possível reservar. Tente novamente.';
+    alert(msg);
+    slotCache.clear(); state.time=null; state.slotIso=null;
+    go(3);
+    return;
+  }
+  slotCache.clear();
+  state.token = data.manage_token;
+  try{ localStorage.setItem(MYKEY, data.manage_token); }catch(e){}
+  state.bookedBarber = BARBERS.find(b=>b.id===data.barber_id)?.name || '—';
+  buildTicket(data);
+  go(5); el('foot').classList.add('hide');
+}
+
+function esc(x){return (x||'').replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));}
+function buildTicket(appt){
+  const s=state;
+  const d=s.date;
+  const te=`<svg class="te" viewBox="0 35 100 82">
+    <path d="M22 40 H78 V66 Q78 93 50 109 Q22 93 22 66 Z" fill="none" stroke="url(#ge)" stroke-width="2.6"/>
+    <path d="M27 45 H73 V65 Q73 88 50 101 Q27 88 27 65 Z" fill="none" stroke="url(#ge)" stroke-width="1"/>
+    <text x="50" y="79" text-anchor="middle" font-weight="700" font-size="30" fill="url(#ge)">VH</text></svg>`;
+  el('ticket').innerHTML=`
+    <div class="tpole"></div>
+    <div class="thead">${te}<div class="ti"><b>VH Barbershop</b><span>Comprovante</span></div></div>
+    <div class="perf"><div class="dash"></div></div>
+    <div class="tbody">
+      <div class="tline"><span class="tk">Cliente</span><span class="tv">${esc(s.name)||'—'}</span></div>
+      <div class="tline"><span class="tk">Serviço</span><span class="tv">${s.service.name}<small>${fmtDur(s.service.duration_min)}</small></span></div>
+      <div class="tline"><span class="tk">Barbeiro</span><span class="tv">${esc(state.bookedBarber)}</span></div>
+      <div class="tline"><span class="tk">Data</span><span class="tv">${d.getDate()}/${pad(d.getMonth()+1)}<small>${DOW[d.getDay()]}</small></span></div>
+      <div class="tline"><span class="tk">Horário</span><span class="tv">${s.time}</span></div>
+      <div class="ttotal"><span class="tk">Total</span><span class="tv">${price(s.service)}</span></div>
+    </div>`;
+}
+
+function sendWpp(){
+  const s=state;
+  const msg=`Olá! Acabei de agendar pela VH Barbershop 💈
+
+`+
+    `*Serviço:* ${s.service.name}
+`+
+    `*Barbeiro:* ${state.bookedBarber}
+`+
+    `*Data:* ${fmtDate(s.date)}
+`+
+    `*Horário:* ${s.time}
+`+
+    `*Valor:* ${price(s.service)}
+
+`+
+    `*Nome:* ${s.name}` + (s.token?`\n\n🔗 Remarcar ou cancelar: ${manageUrl(s.token)}`:'');
+  window.open(`https://wa.me/${SHOP_PHONE}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+
+function reset(){
+  Object.assign(state,{service:null,barber:null,date:null,slotIso:null,time:null,name:'',phone:'',token:null});
+  RESCHED=null; MANAGE=null;
+  el('nm').value='';el('ph').value='';
+  lastDatesBarber=null; dateList=[]; slotCache.clear();
+  renderServices();renderBarbers();
+  el('manage').classList.remove('active');
+  el('home').classList.add('active');
+  el('bar').style.display='none';el('progress').style.display='none';
+  el('screen').style.display='none';el('foot').classList.add('hide');
+  step=0;
+  checkMyBooking();
+}
+
+/* ---------- gerenciar horário (cancelar / remarcar) ---------- */
+function manageUrl(t){ return location.origin+location.pathname+'?h='+t; }
+const EMBLEM=`<svg class="mg-em" viewBox="0 35 100 82">
+  <path d="M22 40 H78 V66 Q78 93 50 109 Q22 93 22 66 Z" fill="none" stroke="url(#ge)" stroke-width="2.6"/>
+  <path d="M27 45 H73 V65 Q73 88 50 101 Q27 88 27 65 Z" fill="none" stroke="url(#ge)" stroke-width="1"/>
+  <text x="50" y="79" text-anchor="middle" font-weight="700" font-size="30" fill="url(#ge)">VH</text></svg>`;
+
+async function openManage(token, flash){
+  if(!token) return;
+  RESCHED=null;
+  el('home').classList.remove('active');
+  el('manage').classList.add('active');
+  el('bar').style.display='none'; el('progress').style.display='none';
+  el('screen').style.display='none'; el('foot').classList.add('hide');
+  el('mgBody').innerHTML='<div class="mg-state">Carregando…</div>';
+  el('mgFoot').innerHTML='';
+  const {data,error}=await sb.rpc('appt_by_token',{p_token:token});
+  if(error||!data){
+    el('mgBody').innerHTML=EMBLEM+'<div class="mg-h">Horário não encontrado</div><div class="mg-sub">Esse link não é válido ou o agendamento foi removido.</div>';
+    el('mgFoot').innerHTML='<button class="cta" onclick="reset()">Agendar horário <span class="arr">→</span></button>';
+    try{ if(localStorage.getItem(MYKEY)===token) localStorage.removeItem(MYKEY); }catch(e){}
+    return;
+  }
+  MANAGE=data; MANAGE.token=token;
+  const d=new Date(data.starts_at);
+  const past=d<=new Date();
+  const active=data.status==='confirmed' && !past;
+  const head=flash ? flash : active ? 'Seu horário' : data.status==='cancelled' ? 'Horário cancelado' : 'Horário encerrado';
+  const sub=active ? 'Precisou mudar? Você pode remarcar ou cancelar por aqui.'
+        : data.status==='cancelled' ? 'Esse agendamento foi cancelado.' : 'Esse horário já passou.';
+  el('mgBody').innerHTML=`${EMBLEM}
+    <div class="mg-h">${head}</div>
+    <div class="mg-sub">${sub}</div>
+    <div class="mg-card">
+      <div class="mg-row"><span class="mg-k">Cliente</span><span class="mg-v">${esc(data.customer_name)}</span></div>
+      <div class="mg-row"><span class="mg-k">Serviço</span><span class="mg-v">${data.service}</span></div>
+      <div class="mg-row"><span class="mg-k">Barbeiro</span><span class="mg-v">${data.barber}</span></div>
+      <div class="mg-row"><span class="mg-k">Quando</span><span class="mg-v">${fmtDate(d)}<br>${hhmm(data.starts_at)}</span></div>
+      <div class="mg-row"><span class="mg-k">Valor</span><span class="mg-v">R$ ${(data.price_cents/100).toLocaleString('pt-BR')}</span></div>
+    </div>`;
+  el('mgFoot').innerHTML = active
+    ? `<button class="cta" onclick="startResched()">Remarcar horário</button>
+       <button class="mg-cancel" onclick="doCancel()">Cancelar horário</button>`
+    : `<button class="cta" onclick="reset()">Agendar novo horário <span class="arr">→</span></button>`;
+}
+
+async function doCancel(){
+  if(!MANAGE) return;
+  if(!confirm(`Cancelar seu horário?\n\n${MANAGE.service} · ${fmtDate(new Date(MANAGE.starts_at))} às ${hhmm(MANAGE.starts_at)}`)) return;
+  const {error}=await sb.rpc('cancel_by_token',{p_token:MANAGE.token});
+  if(error){
+    alert(/passou|ativo/i.test(error.message||'') ? 'Esse horário já começou — fale com a barbearia.' : 'Não foi possível cancelar. Tente de novo.');
+    return;
+  }
+  try{ if(localStorage.getItem(MYKEY)===MANAGE.token) localStorage.removeItem(MYKEY); }catch(e){}
+  slotCache.clear();
+  openManage(MANAGE.token);
+}
+
+function startResched(){
+  if(!MANAGE) return;
+  const svc=SERVICES.find(x=>x.id===MANAGE.service_id);
+  const brb=BARBERS.find(x=>x.id===MANAGE.barber_id);
+  if(!svc||!brb){ alert('Não foi possível remarcar agora. Fale com a barbearia.'); return; }
+  RESCHED=MANAGE.token;
+  state.service=svc; state.barber=brb;
+  state.date=null; state.slotIso=null; state.time=null;
+  lastDatesBarber=null; dateList=[]; slotCache.clear();
+  el('manage').classList.remove('active');
+  el('bar').style.display='flex'; el('progress').style.display='none';
+  el('screen').style.display='block'; el('foot').classList.remove('hide');
+  go(3);
+}
+
+async function doReschedule(){
+  el('next').disabled=true; el('next').innerHTML='Remarcando…';
+  const {error}=await sb.rpc('reschedule_by_token',{p_token:RESCHED,p_start:state.slotIso});
+  if(error){
+    alert(/indispon|ocupado/i.test(error.message||'') ? 'Esse horário acabou de ser ocupado. Escolha outro.' : 'Não foi possível remarcar. Tente de novo.');
+    slotCache.clear(); state.time=null; state.slotIso=null;
+    el('next').disabled=false; go(3);
+    return;
+  }
+  const t=RESCHED; RESCHED=null; slotCache.clear();
+  openManage(t,'Horário remarcado');
+}
+
+async function checkMyBooking(){
+  let t=null; try{ t=localStorage.getItem(MYKEY); }catch(e){}
+  if(!t){ el('myBooking').innerHTML=''; return; }
+  const {data}=await sb.rpc('appt_by_token',{p_token:t});
+  if(!data || data.status!=='confirmed' || new Date(data.starts_at)<=new Date()){
+    try{ localStorage.removeItem(MYKEY); }catch(e){}
+    el('myBooking').innerHTML=''; return;
+  }
+  el('myBooking').innerHTML=`<button class="mybk" onclick="openManage('${t}')">
+    <span class="mybk-l"><b>Você tem horário marcado</b>
+      <span>${data.service} · ${fmtDate(new Date(data.starts_at))} às ${hhmm(data.starts_at)}</span></span>
+    <span class="mybk-a">Gerenciar →</span>
+  </button>`;
+}
+
+/* ---------- init ---------- */
+views=[null, el('v1'), el('v2v')||el('v2'), el('v3'), el('v4'), el('v5')];
+const URLTOK=new URLSearchParams(location.search).get('h');
+loadAll().then(()=>{ if(URLTOK) openManage(URLTOK); else checkMyBooking(); });
+</script>
+<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');</script>
+</body>
+</html>
