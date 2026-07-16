@@ -214,6 +214,19 @@
   .tag.soon{color:#bfe6cf;background:rgba(47,168,106,.16)}
   .tag.vip{color:#15110a;background:var(--grad-gold)}
 
+  .cli-add{display:flex;gap:8px;padding:4px 20px 0}
+  .cli-add button{flex:1;border:1px dashed var(--line);background:transparent;color:var(--muted);
+    border-radius:12px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;font-family:inherit}
+  .cli-add button:hover{border-color:var(--gold);color:var(--gold-lt)}
+  .cli-form{margin:10px 20px 2px;background:var(--panel);border:1px solid var(--line-soft);border-radius:14px;padding:14px}
+  .cli-form .ff-lab{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:700;margin-bottom:12px}
+  .cli-form input{width:100%;border:1px solid var(--line);background:var(--bg);color:var(--cream);
+    border-radius:11px;padding:12px;font-size:14px;font-family:inherit;margin-bottom:9px}
+  .cli-form input:focus{outline:none;border-color:var(--gold)}
+  .fi-note{margin-top:12px;background:rgba(201,162,75,.07);border:1px solid var(--gold-deep);border-radius:12px;
+    padding:11px 13px;font-size:13px;color:var(--gold-lt);line-height:1.45}
+  .fi-acts .fi-book{background:var(--grad-gold);color:#15110a}
+
   /* ---- FICHA (bottom sheet) ---- */
   .sheet{position:absolute;inset:0;z-index:70;display:none}
   .sheet.on{display:block}
@@ -358,6 +371,14 @@
         <button class="chip-f on" data-c="all"  onclick="setCliFilter('all')">Todos</button>
         <button class="chip-f" data-c="miss" onclick="setCliFilter('miss')">Faltosos</button>
         <button class="chip-f" data-c="gone" onclick="setCliFilter('gone')">Sumidos</button>
+      </div>
+      <div class="cli-add"><button onclick="toggleCliForm()">+ Adicionar cliente</button></div>
+      <div class="cli-form" id="cliForm" style="display:none">
+        <div class="ff-lab">Novo cliente</div>
+        <input id="ncName" type="text" placeholder="Nome do cliente" autocomplete="off">
+        <input id="ncPhone" type="tel" placeholder="WhatsApp — (17) 9 9999-9999" autocomplete="off">
+        <input id="ncNote" type="text" placeholder="Observação (opcional) — ex.: máquina 2, prefere sábado">
+        <button class="confirmclose" style="width:100%;margin-top:4px" onclick="saveClient()">Salvar cliente</button>
       </div>
       <div class="cli-search"><input id="cliQ" type="search" placeholder="Buscar por nome ou telefone" oninput="renderClientes()"></div>
       <div class="cli-list" id="cliList"></div>
@@ -589,6 +610,7 @@ function renderClientes(){
   }
   el('cliList').innerHTML=list.map(c=>{
     const tags=[];
+    if(c.saved && !c.visits && !c.next_visit) tags.push('<span class="tag gone">Cadastrado</span>');
     if(isVip(c)) tags.push('<span class="tag vip">Fiel · '+c.visits+' cortes</span>');
     if(isMiss(c)) tags.push('<span class="tag miss">Faltou '+c.no_shows+'x</span>');
     if(isGone(c)) tags.push('<span class="tag gone">Sumido '+fmtAgo(c.last_visit)+'</span>');
@@ -599,7 +621,7 @@ function renderClientes(){
         <span class="cli-nm">${c.name||'—'}</span>
         <span class="cli-tot">${fmt(c.total_cents/100)}</span>
       </div>
-      <div class="cli-sub">${c.visits} atend. · última ${fmtAgo(c.last_visit)}</div>
+      <div class="cli-sub">${c.visits?c.visits+' atend. · última '+fmtAgo(c.last_visit):(c.next_visit?'primeiro horário marcado':'ainda sem atendimento')}</div>
       ${tags.length?`<div class="cli-tags">${tags.join('')}</div>`:''}
     </button>`;
   }).join('');
@@ -628,13 +650,50 @@ function openFicha(pk){
       <div class="fi-row"><span class="k">Serviço preferido</span><span class="v">${c.top_service||'—'}</span></div>
       <div class="fi-row"><span class="k">Ticket médio</span><span class="v">${c.visits?fmt((c.total_cents/100)/c.visits):'—'}</span></div>
     </div>
+    ${c.notes?`<div class="fi-note">${c.notes}</div>`:''}
     <div class="fi-acts">
-      <a class="fi-wpp" href="${waLink(c.phone)}" target="_blank" rel="noopener">Chamar no WhatsApp</a>
+      <button class="fi-book" onclick="agendarPara('${c.phone_key}')">Agendar</button>
+      <a class="fi-wpp" href="${waLink(c.phone)}" target="_blank" rel="noopener">WhatsApp</a>
+    </div>
+    <div class="fi-acts" style="margin-top:9px">
       <button class="fi-close" onclick="closeFicha()">Fechar</button>
     </div>`;
   el('ficha').classList.add('on');
 }
 function closeFicha(){ el('ficha').classList.remove('on'); }
+function toggleCliForm(){
+  const f=el('cliForm');
+  f.style.display = f.style.display==='none' ? 'block' : 'none';
+  if(f.style.display==='block') el('ncName').focus();
+}
+async function saveClient(){
+  const name=(el('ncName').value||'').trim();
+  const phone=(el('ncPhone').value||'').trim();
+  const notes=(el('ncNote').value||'').trim();
+  if(!name){alert('Digite o nome do cliente.');return;}
+  if(phone.replace(/\D/g,'').length<10){alert('Digite o WhatsApp com DDD.');return;}
+  const {error}=await sb.from('clients').insert({name,phone,notes:notes||null});
+  if(error){
+    alert((error.code==='23505'||/duplicate|unique/i.test(error.message||''))
+      ? 'Esse telefone já está na lista de clientes.'
+      : 'Não foi possível salvar o cliente.');
+    return;
+  }
+  el('ncName').value='';el('ncPhone').value='';el('ncNote').value='';
+  toggleCliForm();
+  await reloadClients();
+}
+function agendarPara(pk){
+  const c=CLIENT_STATS.find(x=>x.phone_key===pk); if(!c) return;
+  closeFicha();
+  tab('agenda');
+  el('qBlock').style.display='none';
+  el('qNew').style.display='block';
+  el('qnName').value=c.name||'';
+  el('qnPhone').value=c.phone||'';
+  qnReloadSlots();
+  el('qNew').scrollIntoView({behavior:'smooth',block:'center'});
+}
 async function reloadClients(){
   const {data}=await sb.rpc('client_stats');
   CLIENT_STATS=(data||[]).slice().sort((a,b)=>String(b.last_visit||'').localeCompare(String(a.last_visit||'')));
