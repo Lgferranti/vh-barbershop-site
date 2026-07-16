@@ -23,7 +23,7 @@
 <meta name="theme-color" content="#0A0A0C">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script type="application/ld+json">
 {
   "@context":"https://schema.org",
@@ -37,6 +37,7 @@
   "geo":{"@type":"GeoCoordinates","latitude":-20.7956545,"longitude":-49.3567223},
   "aggregateRating":{"@type":"AggregateRating","ratingValue":"5.0","reviewCount":"43"},
   "sameAs":["https://www.instagram.com/vhbarbershopriopreto/"],
+  "employee":[{"@type":"Person","name":"Vitor Hugo"},{"@type":"Person","name":"João"}],
   "openingHoursSpecification":[
     {"@type":"OpeningHoursSpecification","dayOfWeek":"Monday","opens":"14:30","closes":"19:00"},
     {"@type":"OpeningHoursSpecification","dayOfWeek":["Tuesday","Wednesday","Thursday","Friday"],"opens":"09:00","closes":"12:00"},
@@ -56,38 +57,38 @@
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   body{
     font-family:'Hanken Grotesk',system-ui,sans-serif;background:var(--bg);color:var(--cream);
-    min-height:100dvh;background-image:radial-gradient(120% 50% at 50% 0%, #1b1712 0%, #0A0A0C 62%);
+    min-height:100dvh;background-image:radial-gradient(120% 46% at 50% 0%, #1b1712 0%, #0A0A0C 60%);
     -webkit-font-smoothing:antialiased;
   }
-  .wrap{max-width:470px;margin:0 auto;padding:34px 20px 40px}
+  .wrap{max-width:470px;margin:0 auto;padding:36px 20px 40px}
   a{text-decoration:none;color:inherit}
+  img{display:block;max-width:100%}
 
   /* ---- hero ---- */
-  .em{width:96px;height:auto;display:block;margin:0 auto 14px;filter:drop-shadow(0 8px 24px rgba(201,162,75,.22))}
-  h1{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:41px;line-height:.98;text-align:center;
+  .em{width:92px;height:auto;display:block;margin:0 auto 15px;filter:drop-shadow(0 8px 24px rgba(201,162,75,.22))}
+  h1{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:42px;line-height:.98;text-align:center;
     background:var(--grad-gold);-webkit-background-clip:text;background-clip:text;color:transparent}
-  .city{text-align:center;font-size:10.5px;letter-spacing:.44em;text-transform:uppercase;color:var(--muted);margin-top:9px}
-  .rule{width:44px;height:1px;background:var(--gold-deep);margin:16px auto}
-  .tag{text-align:center;font-size:14px;line-height:1.6;color:var(--cream);opacity:.9;max-width:33ch;margin:0 auto}
+  .city{text-align:center;font-size:10.5px;letter-spacing:.44em;text-transform:uppercase;color:var(--muted);margin-top:10px}
+  .rule{width:44px;height:1px;background:var(--gold-deep);margin:17px auto}
+  .tag{text-align:center;font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:500;
+    font-size:19px;line-height:1.5;color:var(--cream);opacity:.92;max-width:26ch;margin:0 auto}
 
   /* ---- status ao vivo ---- */
-  .status{display:flex;align-items:center;justify-content:center;gap:8px;margin:18px auto 0;width:fit-content;
+  .status{display:flex;align-items:center;justify-content:center;gap:8px;margin:20px auto 0;width:fit-content;
     border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:8px 15px;font-size:12.5px;font-weight:700}
   .dot{width:7px;height:7px;border-radius:50%;background:var(--muted-2);flex:0 0 auto}
   .status.open{border-color:rgba(62,194,127,.4)}
   .status.open .dot{background:var(--ok);box-shadow:0 0 0 0 rgba(62,194,127,.6);animation:pulse 2.2s infinite}
   .status.soon{border-color:var(--gold-deep)}
   .status.soon .dot{background:var(--gold)}
-  .status .t{color:var(--cream)}
-  .status .s{color:var(--muted);font-weight:500}
+  .status .t{color:var(--cream)}.status .s{color:var(--muted);font-weight:500}
   @keyframes pulse{70%{box-shadow:0 0 0 7px rgba(62,194,127,0)}100%{box-shadow:0 0 0 0 rgba(62,194,127,0)}}
   @media(prefers-reduced-motion:reduce){.status.open .dot{animation:none}}
 
   /* ---- prova social ---- */
   .rate{display:flex;align-items:center;justify-content:center;gap:9px;margin-top:14px;font-size:13px}
   .stars{color:var(--gold-lt);letter-spacing:2px;font-size:14px}
-  .rate b{font-weight:800;color:var(--cream)}
-  .rate span{color:var(--muted)}
+  .rate b{font-weight:800;color:var(--cream)}.rate span{color:var(--muted)}
   .stats{display:flex;align-items:center;justify-content:center;gap:22px;margin-top:16px}
   .stat{text-align:center}
   .stat b{display:block;font-family:'Cormorant Garamond',serif;font-size:23px;font-weight:700;color:var(--gold-lt);line-height:1}
@@ -96,14 +97,13 @@
 
   /* ---- botões ---- */
   .cta{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;margin-top:26px;
-    background:var(--grad-gold);color:#15110a;font-weight:800;font-size:16px;letter-spacing:.01em;
+    background:var(--grad-gold);color:#15110a;font-weight:800;font-size:16px;
     padding:18px;border-radius:15px;border:none;cursor:pointer;font-family:inherit;
     box-shadow:0 10px 30px rgba(201,162,75,.2);transition:.18s;position:relative;overflow:hidden}
   .cta:hover{filter:brightness(1.06);transform:translateY(-1px)}
   .cta .arr{transition:.2s}.cta:hover .arr{transform:translateX(4px)}
   .cta::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;
-    background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);
-    animation:sheen 4.5s ease-in-out infinite}
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);animation:sheen 4.5s ease-in-out infinite}
   @keyframes sheen{0%,72%{left:-60%}100%{left:120%}}
   @media(prefers-reduced-motion:reduce){.cta::after{display:none}}
   .cta-sub{text-align:center;font-size:11.5px;color:var(--muted);margin-top:9px}
@@ -123,63 +123,65 @@
   .row2 .btn .lb b{font-size:13px}
 
   /* ---- seções ---- */
-  .sec{margin-top:34px}
-  .sec-h{display:flex;align-items:center;gap:11px;margin-bottom:14px}
+  .sec{margin-top:36px}
+  .sec-h{display:flex;align-items:center;gap:11px;margin-bottom:15px}
   .sec-h span{font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);font-weight:700;white-space:nowrap}
   .sec-h::after{content:"";flex:1;height:1px;background:var(--line-soft)}
-
-  .cat{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:16px 0 9px}
-  .cat:first-child{margin-top:0}
-  .svc{display:flex;align-items:baseline;gap:10px;padding:11px 0;border-bottom:1px dotted var(--line)}
-  .svc:last-child{border-bottom:none}
-  .svc .n{flex:1;min-width:0}
-  .svc .n b{font-size:14px;font-weight:600;color:var(--cream)}
-  .svc .n i{display:block;font-style:normal;font-size:11.5px;color:var(--muted);margin-top:2px}
-  .svc .d{font-size:11px;color:var(--muted-2);white-space:nowrap}
-  .svc .p{font-weight:800;font-size:14.5px;color:var(--gold-lt);white-space:nowrap;min-width:52px;text-align:right}
   .card{background:var(--panel);border:1px solid var(--line-soft);border-radius:16px;padding:16px}
+
+  /* ---- equipe (fotos) ---- */
+  .team{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .mem{position:relative;display:block;border-radius:16px;overflow:hidden;border:1px solid var(--line-soft);
+    background:var(--panel);transition:.2s}
+  .mem:hover{border-color:var(--gold-deep);transform:translateY(-2px)}
+  .mem img{width:100%;aspect-ratio:4/5;object-fit:cover;object-position:50% 22%;
+    filter:saturate(.92) contrast(1.04)}
+  .mem .ov{position:absolute;inset:auto 0 0 0;padding:26px 13px 12px;
+    background:linear-gradient(180deg,rgba(10,10,12,0),rgba(10,10,12,.86) 55%,rgba(10,10,12,.96))}
+  .mem .ov b{display:block;font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:600;color:var(--cream);line-height:1.1}
+  .mem .ov i{display:block;font-style:normal;font-size:10.5px;color:var(--muted);margin-top:3px}
+  .mem .ov em{display:block;font-style:normal;font-size:10px;font-weight:800;color:var(--gold-lt);margin-top:6px;letter-spacing:.04em}
+  .mem::after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 60px rgba(0,0,0,.5);pointer-events:none}
 
   /* ---- depoimentos ---- */
   .quote{background:var(--panel);border:1px solid var(--line-soft);border-left:2px solid var(--gold-deep);
-    border-radius:12px;padding:13px 15px;margin-bottom:9px}
-  .quote p{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:16px;color:var(--cream);line-height:1.45}
-  .quote cite{display:block;font-style:normal;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-2);margin-top:7px}
-  .all-rev{display:block;text-align:center;font-size:12.5px;color:var(--gold-lt);font-weight:700;padding:10px;margin-top:2px}
+    border-radius:12px;padding:14px 16px;margin-bottom:9px}
+  .quote p{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:17px;color:var(--cream);line-height:1.45}
+  .quote cite{display:block;font-style:normal;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted-2);margin-top:8px}
+  .all-rev{display:block;text-align:center;font-size:12.5px;color:var(--gold-lt);font-weight:700;padding:11px;margin-top:2px}
   .all-rev:hover{text-decoration:underline;text-underline-offset:3px}
-
-  /* ---- equipe ---- */
-  .pro{display:flex;align-items:center;gap:13px;background:var(--panel);border:1px solid var(--line-soft);
-    border-radius:14px;padding:13px 15px;margin-bottom:10px;transition:.16s}
-  .pro:hover{border-color:var(--gold-deep)}
-  .av{width:46px;height:46px;flex:0 0 auto;border-radius:50%;border:1.5px solid var(--gold);
-    background:radial-gradient(circle at 35% 30%, #211d16, #0c0b0e);color:var(--gold-lt);
-    display:grid;place-items:center;font-family:'Cormorant Garamond',serif;font-weight:700;font-size:17px}
-  .pro .i{flex:1;min-width:0}
-  .pro .i b{display:block;font-size:14.5px;font-weight:700}
-  .pro .i span{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
-  .pro .i em{display:block;font-style:normal;font-size:11px;color:var(--gold);font-weight:700;margin-top:3px}
 
   /* ---- horários ---- */
   .hr{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line-soft);font-size:13px}
   .hr:last-child{border-bottom:none}
   .hr .d{color:var(--muted)}
   .hr .v{font-weight:600;text-align:right;color:var(--cream)}
-  .hr.now .d{color:var(--gold-lt);font-weight:800}
-  .hr.now .v{color:var(--gold-lt);font-weight:800}
+  .hr.now .d,.hr.now .v{color:var(--gold-lt);font-weight:800}
   .hr.off .v{color:var(--muted-2);font-weight:500}
   .note{font-size:11.5px;color:var(--muted-2);margin-top:11px;line-height:1.5}
+
+  /* ---- dúvidas ---- */
+  .faq{background:var(--panel);border:1px solid var(--line-soft);border-radius:14px;margin-bottom:9px;overflow:hidden}
+  .faq summary{list-style:none;cursor:pointer;padding:15px 16px;font-size:13.5px;font-weight:700;color:var(--cream);
+    display:flex;align-items:center;justify-content:space-between;gap:12px;transition:.15s}
+  .faq summary::-webkit-details-marker{display:none}
+  .faq summary:hover{color:var(--gold-lt)}
+  .faq summary::after{content:"+";color:var(--gold);font-weight:800;font-size:17px;flex:0 0 auto;transition:.2s}
+  .faq[open] summary::after{transform:rotate(45deg)}
+  .faq[open] summary{color:var(--gold-lt)}
+  .faq .a{padding:0 16px 15px;font-size:13px;color:var(--muted);line-height:1.6}
 
   /* ---- endereço ---- */
   .addr{font-size:13.5px;line-height:1.6;color:var(--cream)}
   .addr span{color:var(--muted);font-size:12.5px}
 
   /* ---- rodapé ---- */
-  .foot{text-align:center;margin-top:36px;padding-top:22px;border-top:1px solid var(--line-soft)}
-  .foot .em2{width:34px;margin:0 auto 12px;display:block;opacity:.75}
+  .tip{display:flex;align-items:center;gap:11px;background:rgba(201,162,75,.06);border:1px solid var(--gold-deep);
+    border-radius:12px;padding:12px 14px;margin-top:24px;font-size:11.5px;color:var(--gold-lt);line-height:1.45}
+  .foot{text-align:center;margin-top:34px;padding-top:22px;border-top:1px solid var(--line-soft)}
+  .foot .em2{width:32px;margin:0 auto 12px;display:block;opacity:.75}
   .foot p{font-size:11px;color:var(--muted-2);line-height:1.7}
   .foot a{color:var(--muted);font-weight:600}
-  .tip{display:flex;align-items:center;gap:10px;background:rgba(201,162,75,.06);border:1px solid var(--gold-deep);
-    border-radius:12px;padding:11px 13px;margin-top:22px;font-size:11.5px;color:var(--gold-lt);line-height:1.45}
 </style>
 </head>
 <body>
@@ -200,7 +202,7 @@
   <h1>VH Barbershop</h1>
   <div class="city">Rio Preto</div>
   <div class="rule"></div>
-  <p class="tag">Barbearia &amp; visagismo. Uma experiência sob medida, do corte ao último detalhe.</p>
+  <p class="tag">Barbearia &amp; visagismo — uma experiência sob medida, do corte ao último detalhe.</p>
 
   <div class="status" id="status"><span class="dot"></span><span class="t">—</span></div>
 
@@ -235,27 +237,18 @@
     </a>
   </div>
 
-  <!-- SERVIÇOS -->
+  <!-- EQUIPE -->
   <div class="sec">
-    <div class="sec-h"><span>Serviços</span></div>
-    <div class="card" id="svcs">
-      <div class="cat">Serviços</div>
-      <div class="svc"><span class="n"><b>Corte</b><i>Máquina, tesoura e acabamento</i></span><span class="d">40min</span><span class="p">R$ 50</span></div>
-      <div class="svc"><span class="n"><b>Barba</b><i>Somente acabamento + navalha</i></span><span class="d">30min</span><span class="p">R$ 45</span></div>
-      <div class="cat">Combos</div>
-      <div class="svc"><span class="n"><b>Corte + Barba</b><i>O combo mais pedido</i></span><span class="d">1h</span><span class="p">R$ 85</span></div>
-      <div class="svc"><span class="n"><b>Corte + Sobrancelha</b></span><span class="d">50min</span><span class="p">R$ 60</span></div>
-      <div class="svc"><span class="n"><b>Corte + Barba + Sobrancelha</b></span><span class="d">1h</span><span class="p">R$ 90</span></div>
-      <div class="svc"><span class="n"><b>Corte + Barboterapia</b></span><span class="d">1h</span><span class="p">R$ 110</span></div>
-      <div class="cat">Tratamentos</div>
-      <div class="svc"><span class="n"><b>Barboterapia</b><i>Vapor de ozônio, óleos e massagem</i></span><span class="d">45min</span><span class="p">R$ 60</span></div>
-      <div class="svc"><span class="n"><b>Hidratação</b></span><span class="d">30min</span><span class="p">R$ 30</span></div>
-      <div class="svc"><span class="n"><b>Selagem</b></span><span class="d">1h</span><span class="p">R$ 60</span></div>
-      <div class="svc"><span class="n"><b>Esfoliação</b></span><span class="d">5min</span><span class="p">R$ 15</span></div>
-      <div class="cat">Acabamentos</div>
-      <div class="svc"><span class="n"><b>Sobrancelha</b></span><span class="d">10min</span><span class="p">R$ 15</span></div>
-      <div class="svc"><span class="n"><b>Depilação com cera</b></span><span class="d">10min</span><span class="p">R$ 15</span></div>
-      <div class="svc"><span class="n"><b>Pezinho</b></span><span class="d">15min</span><span class="p">R$ 20</span></div>
+    <div class="sec-h"><span>Quem cuida de você</span></div>
+    <div class="team">
+      <a class="mem" href="https://www.instagram.com/vitorfonsecaa_/" target="_blank" rel="noopener">
+        <img src="fotos/vitor.jpg" alt="Vitor Hugo — barbeiro e visagista da VH Barbershop" loading="lazy" width="386" height="483">
+        <span class="ov"><b>Vitor Hugo</b><i>Barbeiro &amp; visagista</i><em>@vitorfonsecaa_ ›</em></span>
+      </a>
+      <div class="mem">
+        <img src="fotos/joao.jpg" alt="João — barbeiro e visagista da VH Barbershop" loading="lazy" width="386" height="483">
+        <span class="ov"><b>João</b><i>Barbeiro &amp; visagista</i></span>
+      </div>
     </div>
   </div>
 
@@ -268,24 +261,11 @@
     <a class="all-rev" href="https://search.google.com/local/reviews?placeid=ChIJw0Cz9BhTvJQRj5Kusflf9uw" target="_blank" rel="noopener">Ver as 43 avaliações no Google →</a>
   </div>
 
-  <!-- EQUIPE -->
-  <div class="sec">
-    <div class="sec-h"><span>Nossa equipe</span></div>
-    <a class="pro" href="https://www.instagram.com/vitorfonsecaa_/" target="_blank" rel="noopener">
-      <span class="av">VH</span>
-      <span class="i"><b>Vitor Hugo</b><span>Cortes, barba e visagismo</span><em>@vitorfonsecaa_ ›</em></span>
-    </a>
-    <div class="pro">
-      <span class="av">J</span>
-      <span class="i"><b>João</b><span>Cortes, barba e visagismo</span></span>
-    </div>
-  </div>
-
   <!-- HORÁRIOS -->
   <div class="sec">
     <div class="sec-h"><span>Horários</span></div>
     <div class="card" id="hrs"></div>
-    <p class="note">Último horário começa às 19h (sábado, às 17h). Fechamos para almoço das 12h às 13h.</p>
+    <p class="note">Último horário começa às 19h (no sábado, às 17h). Fechamos para almoço das 12h às 13h.</p>
   </div>
 
   <!-- ONDE ESTAMOS -->
@@ -304,6 +284,21 @@
       <span class="lb"><b>Ligar</b><span>(17) 99719-5589</span></span>
       <span class="ch">›</span>
     </a>
+  </div>
+
+  <!-- DÚVIDAS -->
+  <div class="sec">
+    <div class="sec-h"><span>Dúvidas comuns</span></div>
+    <details class="faq"><summary>Preciso agendar antes?</summary>
+      <div class="a">Recomendamos, sim — é a única forma de garantir o seu horário com o barbeiro que você prefere. Pelo app leva menos de um minuto e você vê na hora tudo o que está livre.</div></details>
+    <details class="faq"><summary>Posso cancelar ou remarcar?</summary>
+      <div class="a">Pode, e sem precisar ligar. Depois de agendar, você recebe um link só seu — por ele dá para remarcar ou cancelar a qualquer momento antes do horário.</div></details>
+    <details class="faq"><summary>Quanto tempo leva o atendimento?</summary>
+      <div class="a">Um corte leva cerca de 40 minutos. Corte com barba, em torno de 1 hora. O app já reserva o tempo certo do serviço que você escolher.</div></details>
+    <details class="faq"><summary>Vocês atendem crianças?</summary>
+      <div class="a">Sim, com toda a paciência que a idade pede. É só escolher o horário normalmente pelo app.</div></details>
+    <details class="faq"><summary>Fecham para almoço?</summary>
+      <div class="a">Sim, das 12h às 13h. Na segunda-feira atendemos só a partir das 14h30, e aos domingos não abrimos.</div></details>
   </div>
 
   <div class="tip">
@@ -329,7 +324,6 @@ const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 
 const DAYS=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 const SHORT=['dom','seg','ter','qua','qui','sex','sáb'];
-// padrão (funciona mesmo sem internet); atualizado pelo banco logo em seguida
 let HOURS={0:[],1:[['14:30','19:00']],2:[['09:00','12:00'],['13:00','19:00']],
            3:[['09:00','12:00'],['13:00','19:00']],4:[['09:00','12:00'],['13:00','19:00']],
            5:[['09:00','12:00'],['13:00','19:00']],6:[['08:30','12:00'],['13:00','17:00']]};
@@ -347,64 +341,36 @@ function renderHours(){
       <span class="d">${DAYS[d]}${d===today?' · hoje':''}</span><span class="v">${v}</span></div>`;
   }).join('');
 }
-
 function renderStatus(){
-  const now=new Date();
-  const d=now.getDay(), cur=now.getHours()*60+now.getMinutes();
+  const now=new Date(), d=now.getDay(), cur=now.getHours()*60+now.getMinutes();
   const iv=(HOURS[d]||[]).map(([a,b])=>[toMin(a),toMin(b),a,b]);
   const box=el('status');
   const open=iv.find(([a,b])=>cur>=a&&cur<b);
-  if(open){
-    box.className='status open';
-    box.innerHTML=`<span class="dot"></span><span class="t">Aberto agora</span><span class="s">· até ${nice(open[3])}</span>`;
-    return;
-  }
+  if(open){ box.className='status open';
+    box.innerHTML=`<span class="dot"></span><span class="t">Aberto agora</span><span class="s">· até ${nice(open[3])}</span>`; return; }
   const later=iv.find(([a])=>cur<a);
-  if(later){
-    const almoco=iv.some(([,b])=>cur>=b) && iv.length>1;
+  if(later){ const almoco=iv.some(([,b])=>cur>=b)&&iv.length>1;
     box.className='status soon';
-    box.innerHTML=`<span class="dot"></span><span class="t">${almoco?'Intervalo de almoço':'Abre hoje'}</span><span class="s">· volta às ${nice(later[2])}</span>`;
-    return;
-  }
+    box.innerHTML=`<span class="dot"></span><span class="t">${almoco?'Intervalo de almoço':'Abre hoje'}</span><span class="s">· volta às ${nice(later[2])}</span>`; return; }
   for(let i=1;i<=7;i++){
     const nd=(d+i)%7, niv=HOURS[nd]||[];
-    if(niv.length){
-      box.className='status';
-      box.innerHTML=`<span class="dot"></span><span class="t">Fechado</span><span class="s">· abre ${i===1?'amanhã':SHORT[nd]} às ${nice(niv[0][0])}</span>`;
-      return;
-    }
+    if(niv.length){ box.className='status';
+      box.innerHTML=`<span class="dot"></span><span class="t">Fechado</span><span class="s">· abre ${i===1?'amanhã':SHORT[nd]} às ${nice(niv[0][0])}</span>`; return; }
   }
-  box.className='status';
-  box.innerHTML='<span class="dot"></span><span class="t">Fechado</span>';
+  box.className='status'; box.innerHTML='<span class="dot"></span><span class="t">Fechado</span>';
 }
-
-function brl(c){return 'R$ '+(c/100).toLocaleString('pt-BR',{minimumFractionDigits:c%100?2:0});}
-function dur(m){return m>=60?(m%60?`${Math.floor(m/60)}h${m%60}`:`${Math.floor(m/60)}h`):`${m}min`;}
-
 async function sync(){
   try{
     const sb=window.supabase.createClient(SB_URL,SB_KEY);
-    const [sv,bh]=await Promise.all([
-      sb.from('services').select('*').eq('active',true).order('sort'),
-      sb.from('business_hours').select('*')
-    ]);
-    if(bh.data&&bh.data.length){
+    const {data}=await sb.from('business_hours').select('*');
+    if(data&&data.length){
       const H={0:[],1:[],2:[],3:[],4:[],5:[],6:[]};
-      bh.data.forEach(r=>H[r.weekday].push([String(r.opens).slice(0,5),String(r.closes).slice(0,5)]));
+      data.forEach(r=>H[r.weekday].push([String(r.opens).slice(0,5),String(r.closes).slice(0,5)]));
       Object.keys(H).forEach(k=>H[k].sort((a,b)=>a[0].localeCompare(b[0])));
       HOURS=H; renderHours(); renderStatus();
     }
-    if(sv.data&&sv.data.length){
-      const cats=[...new Set(sv.data.map(s=>s.category))];
-      el('svcs').innerHTML=cats.map(c=>`<div class="cat">${c}</div>`+
-        sv.data.filter(s=>s.category===c).map(s=>`<div class="svc">
-          <span class="n"><b>${s.name}</b>${s.description?`<i>${s.description}</i>`:''}</span>
-          <span class="d">${dur(s.duration_min)}</span><span class="p">${brl(s.price_cents)}</span></div>`).join('')
-      ).join('');
-    }
-  }catch(e){/* mantém o conteúdo estático */}
+  }catch(e){}
 }
-
 renderHours(); renderStatus(); sync();
 setInterval(renderStatus,60000);
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
