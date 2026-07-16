@@ -254,6 +254,8 @@
     border-radius:12px;padding:13px;font-size:13.5px;font-weight:800;font-family:inherit}
   .fi-wpp{background:#1f7a4d;color:#fff}
   .fi-close{background:transparent;border:1px solid var(--line)!important;color:var(--muted)}
+  .fi-del{background:transparent;border:1px solid rgba(194,100,94,.5)!important;color:#e6938d}
+  .fi-del:hover{background:rgba(194,100,94,.12)}
 
   /* bottom nav */
   .nav{flex:0 0 auto;display:flex;border-top:1px solid var(--line-soft);background:var(--bg);
@@ -656,11 +658,30 @@ function openFicha(pk){
       <a class="fi-wpp" href="${waLink(c.phone)}" target="_blank" rel="noopener">WhatsApp</a>
     </div>
     <div class="fi-acts" style="margin-top:9px">
+      ${(ACCESS.role==='admin'||(c.saved&&!c.appts))?`<button class="fi-del" onclick="excluirCliente('${c.phone_key}')">Excluir</button>`:''}
       <button class="fi-close" onclick="closeFicha()">Fechar</button>
     </div>`;
   el('ficha').classList.add('on');
 }
 function closeFicha(){ el('ficha').classList.remove('on'); }
+async function excluirCliente(pk){
+  const c=CLIENT_STATS.find(x=>x.phone_key===pk); if(!c) return;
+  const n=c.appts||0;
+  const msg = n
+    ? `Excluir ${c.name}?\n\nIsso apaga também ${n} agendamento${n>1?'s':''} e todo o histórico dele — o faturamento desses atendimentos sai dos relatórios.\n\nNão dá para desfazer.`
+    : `Excluir ${c.name} da lista de clientes?`;
+  if(!confirm(msg)) return;
+  const {error}=await sb.rpc('delete_client',{p_phone_key:pk});
+  if(error){
+    alert(/administrador/i.test(error.message||'')
+      ? 'Cliente com histórico só pode ser excluído pelo administrador.'
+      : 'Não foi possível excluir o cliente.');
+    return;
+  }
+  closeFicha();
+  await reloadClients();
+  renderAgenda();
+}
 function toggleCliForm(){
   const f=el('cliForm');
   f.style.display = f.style.display==='none' ? 'block' : 'none';
