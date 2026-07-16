@@ -284,9 +284,16 @@
       </div>
     </div>
     <div class="home-foot">
+      <div id="myBooking"></div>
       <div class="addr">RUA MARCOS VILELA FILHO, 115 — S. J. RIO PRETO<br>SEG 14:30–19H · TER–SEX 9–12H / 13–19H · SÁB 8:30–17H</div>
       <button class="cta" onclick="start()">Agendar horário <span class="arr">→</span></button>
     </div>
+  </section>
+
+  <!-- ============ GERENCIAR HORÁRIO ============ -->
+  <section class="mg" id="manage">
+    <div class="mg-top" id="mgBody"></div>
+    <div class="mg-foot" id="mgFoot"></div>
   </section>
 
   <!-- ============ FLOW ============ -->
@@ -333,6 +340,7 @@
           <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-2.8.8.8-2.8-.2-.3A8 8 0 1 1 12 20zm4.5-5.9c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.5.1l-.7.9c-.1.2-.3.2-.5.1a6.5 6.5 0 0 1-3.2-2.8c-.2-.4.2-.4.6-1.2.1-.2 0-.3 0-.5l-.7-1.7c-.2-.4-.4-.4-.5-.4h-.5c-.2 0-.5.1-.7.3-.8.8-.9 1.9-.5 3a8.3 8.3 0 0 0 3.6 4 8 8 0 0 0 3.3 1c.6 0 1.4-.3 1.6-.8.2-.4.2-.9.1-1z"/></svg>
           Confirmar no WhatsApp
         </button>
+        <button class="ghost" onclick="openManage(state.token)">Cancelar ou remarcar meu horário</button>
         <button class="ghost" onclick="reset()">Fazer novo agendamento</button>
       </div>
     </div>
@@ -376,7 +384,9 @@ const MON=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','de
 const MON_L=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 const TITLES = ['','Serviço','Profissional','Data e horário','Seus dados','Confirmação'];
 
-const state = {service:null, barber:null, date:null, slotIso:null, time:null, name:'', phone:''};
+const state = {service:null, barber:null, date:null, slotIso:null, time:null, name:'', phone:'', token:null};
+const MYKEY='vh_tok';
+let MANAGE=null, RESCHED=null;
 let step = 0;
 let SERVICES=[], BARBERS=[], CLOSURES=[], TIMEOFF=[], BH=[];
 let dateList=[], views=[];
@@ -451,27 +461,28 @@ function start(){ el('home').classList.remove('active'); el('bar').style.display
 function go(n){
   step=n;
   views.forEach((v,i)=>{ if(v) v.classList.toggle('active', i===n); });
-  el('eyebrow').textContent = `Passo ${n} de 5`;
-  el('stepName').textContent = TITLES[n];
+  el('eyebrow').textContent = RESCHED ? 'Remarcar' : `Passo ${n} de 5`;
+  el('stepName').textContent = RESCHED ? 'Novo horário' : TITLES[n];
   [...el('progress').children].forEach((b,i)=>b.classList.toggle('on', i<n));
-  el('back').classList.toggle('hide', n<=1);
+  el('back').classList.toggle('hide', RESCHED ? false : n<=1);
   el('screen').scrollTop=0;
   const showFoot = n>=1 && n<=4;
   el('foot').classList.toggle('hide', !showFoot);
   el('priceTag').style.display = (state.service && n<=4) ? 'flex' : 'none';
   if(state.service) el('footPrice').innerHTML = price(state.service) + (n===4 ? `<small> a pagar na barbearia</small>` : ``);
   const labels={1:'Escolher profissional',2:'Ver horários',3:'Continuar',4:'Reservar horário'};
-  el('next').innerHTML = `${labels[n]||'Continuar'} <span class="arr">→</span>`;
+  el('next').innerHTML = (RESCHED && n===3) ? 'Confirmar novo horário <span class="arr">→</span>' : `${labels[n]||'Continuar'} <span class="arr">→</span>`;
   if(n===3) ensureDates();
   updateGate();
 }
 async function next(){
   if(el('next').disabled) return;
+  if(RESCHED && step===3){ await doReschedule(); return; }
   if(step===4){ await doBook(); return; }
   if(step===3) buildRecap();
   go(step+1);
 }
-function back(){ if(step>1) go(step-1); }
+function back(){ if(RESCHED){ const t=RESCHED; RESCHED=null; openManage(t); return; } if(step>1) go(step-1); }
 function updateGate(){
   let ok=false;
   if(step===1) ok=!!state.service;
@@ -647,6 +658,8 @@ async function doBook(){
     return;
   }
   slotCache.clear();
+  state.token = data.manage_token;
+  try{ localStorage.setItem(MYKEY, data.manage_token); }catch(e){}
   state.bookedBarber = BARBERS.find(b=>b.id===data.barber_id)?.name || '—';
   buildTicket(data);
   go(5); el('foot').classList.add('hide');
@@ -690,24 +703,130 @@ function sendWpp(){
     `*Valor:* ${price(s.service)}
 
 `+
-    `*Nome:* ${s.name}`;
+    `*Nome:* ${s.name}` + (s.token?`\n\n🔗 Remarcar ou cancelar: ${manageUrl(s.token)}`:'');
   window.open(`https://wa.me/${SHOP_PHONE}?text=${encodeURIComponent(msg)}`,'_blank');
 }
 
 function reset(){
-  Object.assign(state,{service:null,barber:null,date:null,slotIso:null,time:null,name:'',phone:''});
+  Object.assign(state,{service:null,barber:null,date:null,slotIso:null,time:null,name:'',phone:'',token:null});
+  RESCHED=null; MANAGE=null;
   el('nm').value='';el('ph').value='';
   lastDatesBarber=null; dateList=[]; slotCache.clear();
   renderServices();renderBarbers();
+  el('manage').classList.remove('active');
   el('home').classList.add('active');
   el('bar').style.display='none';el('progress').style.display='none';
   el('screen').style.display='none';el('foot').classList.add('hide');
   step=0;
+  checkMyBooking();
+}
+
+/* ---------- gerenciar horário (cancelar / remarcar) ---------- */
+function manageUrl(t){ return location.origin+location.pathname+'?h='+t; }
+const EMBLEM=`<svg class="mg-em" viewBox="0 35 100 82">
+  <path d="M22 40 H78 V66 Q78 93 50 109 Q22 93 22 66 Z" fill="none" stroke="url(#ge)" stroke-width="2.6"/>
+  <path d="M27 45 H73 V65 Q73 88 50 101 Q27 88 27 65 Z" fill="none" stroke="url(#ge)" stroke-width="1"/>
+  <text x="50" y="79" text-anchor="middle" font-weight="700" font-size="30" fill="url(#ge)">VH</text></svg>`;
+
+async function openManage(token, flash){
+  if(!token) return;
+  RESCHED=null;
+  el('home').classList.remove('active');
+  el('manage').classList.add('active');
+  el('bar').style.display='none'; el('progress').style.display='none';
+  el('screen').style.display='none'; el('foot').classList.add('hide');
+  el('mgBody').innerHTML='<div class="mg-state">Carregando…</div>';
+  el('mgFoot').innerHTML='';
+  const {data,error}=await sb.rpc('appt_by_token',{p_token:token});
+  if(error||!data){
+    el('mgBody').innerHTML=EMBLEM+'<div class="mg-h">Horário não encontrado</div><div class="mg-sub">Esse link não é válido ou o agendamento foi removido.</div>';
+    el('mgFoot').innerHTML='<button class="cta" onclick="reset()">Agendar horário <span class="arr">→</span></button>';
+    try{ if(localStorage.getItem(MYKEY)===token) localStorage.removeItem(MYKEY); }catch(e){}
+    return;
+  }
+  MANAGE=data; MANAGE.token=token;
+  const d=new Date(data.starts_at);
+  const past=d<=new Date();
+  const active=data.status==='confirmed' && !past;
+  const head=flash ? flash : active ? 'Seu horário' : data.status==='cancelled' ? 'Horário cancelado' : 'Horário encerrado';
+  const sub=active ? 'Precisou mudar? Você pode remarcar ou cancelar por aqui.'
+        : data.status==='cancelled' ? 'Esse agendamento foi cancelado.' : 'Esse horário já passou.';
+  el('mgBody').innerHTML=`${EMBLEM}
+    <div class="mg-h">${head}</div>
+    <div class="mg-sub">${sub}</div>
+    <div class="mg-card">
+      <div class="mg-row"><span class="mg-k">Cliente</span><span class="mg-v">${esc(data.customer_name)}</span></div>
+      <div class="mg-row"><span class="mg-k">Serviço</span><span class="mg-v">${data.service}</span></div>
+      <div class="mg-row"><span class="mg-k">Barbeiro</span><span class="mg-v">${data.barber}</span></div>
+      <div class="mg-row"><span class="mg-k">Quando</span><span class="mg-v">${fmtDate(d)}<br>${hhmm(data.starts_at)}</span></div>
+      <div class="mg-row"><span class="mg-k">Valor</span><span class="mg-v">R$ ${(data.price_cents/100).toLocaleString('pt-BR')}</span></div>
+    </div>`;
+  el('mgFoot').innerHTML = active
+    ? `<button class="cta" onclick="startResched()">Remarcar horário</button>
+       <button class="mg-cancel" onclick="doCancel()">Cancelar horário</button>`
+    : `<button class="cta" onclick="reset()">Agendar novo horário <span class="arr">→</span></button>`;
+}
+
+async function doCancel(){
+  if(!MANAGE) return;
+  if(!confirm(`Cancelar seu horário?\n\n${MANAGE.service} · ${fmtDate(new Date(MANAGE.starts_at))} às ${hhmm(MANAGE.starts_at)}`)) return;
+  const {error}=await sb.rpc('cancel_by_token',{p_token:MANAGE.token});
+  if(error){
+    alert(/passou|ativo/i.test(error.message||'') ? 'Esse horário já começou — fale com a barbearia.' : 'Não foi possível cancelar. Tente de novo.');
+    return;
+  }
+  try{ if(localStorage.getItem(MYKEY)===MANAGE.token) localStorage.removeItem(MYKEY); }catch(e){}
+  slotCache.clear();
+  openManage(MANAGE.token);
+}
+
+function startResched(){
+  if(!MANAGE) return;
+  const svc=SERVICES.find(x=>x.id===MANAGE.service_id);
+  const brb=BARBERS.find(x=>x.id===MANAGE.barber_id);
+  if(!svc||!brb){ alert('Não foi possível remarcar agora. Fale com a barbearia.'); return; }
+  RESCHED=MANAGE.token;
+  state.service=svc; state.barber=brb;
+  state.date=null; state.slotIso=null; state.time=null;
+  lastDatesBarber=null; dateList=[]; slotCache.clear();
+  el('manage').classList.remove('active');
+  el('bar').style.display='flex'; el('progress').style.display='none';
+  el('screen').style.display='block'; el('foot').classList.remove('hide');
+  go(3);
+}
+
+async function doReschedule(){
+  el('next').disabled=true; el('next').innerHTML='Remarcando…';
+  const {error}=await sb.rpc('reschedule_by_token',{p_token:RESCHED,p_start:state.slotIso});
+  if(error){
+    alert(/indispon|ocupado/i.test(error.message||'') ? 'Esse horário acabou de ser ocupado. Escolha outro.' : 'Não foi possível remarcar. Tente de novo.');
+    slotCache.clear(); state.time=null; state.slotIso=null;
+    el('next').disabled=false; go(3);
+    return;
+  }
+  const t=RESCHED; RESCHED=null; slotCache.clear();
+  openManage(t,'Horário remarcado');
+}
+
+async function checkMyBooking(){
+  let t=null; try{ t=localStorage.getItem(MYKEY); }catch(e){}
+  if(!t){ el('myBooking').innerHTML=''; return; }
+  const {data}=await sb.rpc('appt_by_token',{p_token:t});
+  if(!data || data.status!=='confirmed' || new Date(data.starts_at)<=new Date()){
+    try{ localStorage.removeItem(MYKEY); }catch(e){}
+    el('myBooking').innerHTML=''; return;
+  }
+  el('myBooking').innerHTML=`<button class="mybk" onclick="openManage('${t}')">
+    <span class="mybk-l"><b>Você tem horário marcado</b>
+      <span>${data.service} · ${fmtDate(new Date(data.starts_at))} às ${hhmm(data.starts_at)}</span></span>
+    <span class="mybk-a">Gerenciar →</span>
+  </button>`;
 }
 
 /* ---------- init ---------- */
 views=[null, el('v1'), el('v2v')||el('v2'), el('v3'), el('v4'), el('v5')];
-loadAll();
+const URLTOK=new URLSearchParams(location.search).get('h');
+loadAll().then(()=>{ if(URLTOK) openManage(URLTOK); else checkMyBooking(); });
 </script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');</script>
 </body>
