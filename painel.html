@@ -604,7 +604,7 @@ function renderClientes(){
   if(cliFilter==='gone') list=list.filter(isGone);
   if(q) list=list.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.phone||'').replace(/\D/g,'').includes(q.replace(/\D/g,'')));
   if(!list.length){
-    const msg=cliFilter==='miss'?'Nenhum cliente com 2+ faltas.':cliFilter==='gone'?'Nenhum cliente sumido há mais de 2 meses.':(q?'Nenhum cliente encontrado.':'Os clientes aparecem aqui depois do primeiro agendamento.');
+    const msg=cliFilter==='miss'?'Nenhum cliente com 2+ faltas.':cliFilter==='gone'?'Nenhum cliente sumido há mais de 2 meses.':(q?'Nenhum cliente encontrado.':'Toque em + Adicionar cliente para cadastrar, ou eles entram sozinhos no primeiro agendamento.');
     el('cliList').innerHTML=`<div class="empty"><div class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><h3>Sem clientes</h3><p>${msg}</p></div>`;
     return;
   }
