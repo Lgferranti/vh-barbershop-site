@@ -186,6 +186,12 @@
   .qrow select,.qrow input{width:100%;border:1px solid var(--line);background:var(--bg);color:var(--cream);border-radius:11px;padding:12px;font-size:14px;font-family:inherit}
   .qrow select:focus,.qrow input:focus{outline:none;border-color:var(--gold)}
   .appt.blocked .cli{color:var(--muted)}
+  .appt.free{background:transparent;border-style:dashed;border-left-style:solid}
+  .appt.free .cli{color:var(--muted);font-weight:600}
+  .appt.free .time b{color:var(--muted)}
+  .appt.free .who{opacity:.8}
+  .appt.past{opacity:.42}
+  .chip.free{color:var(--muted-2);border:1px solid var(--line)}
 
   /* bottom nav */
   .nav{flex:0 0 auto;display:flex;border-top:1px solid var(--line-soft);background:var(--bg);
@@ -525,14 +531,13 @@ function paintAgenda(){
   let count=0,rev=0,done=0;
   list.forEach(x=>{if(x.status!=='cancelled')count++;if(x.status==='done'||x.status==='confirmed')rev+=x.services.price_cents/100;if(x.status==='done')done++;});
   el('stCount').textContent=count;el('stRev').textContent=fmt(rev);el('stDone').textContent=done;
-  if(!list.length && !blocks.length){el('list').innerHTML=emptyBox('cal','Sem agendamentos','Nenhum horário marcado para este dia.');return;}
   const now=new Date();
   let nextId=null;
   if(sel===0){const up=list.filter(x=>x.status==='confirmed'&&new Date(x.starts_at)>=now);if(up.length)nextId=up[0].id;}
   const items=list.map(x=>{
     const B=SLUG[x.barber_id]||{name:'—',color:'var(--gold)'};
     const acts=x.status==='confirmed';
-    return {t:x.starts_at, html:`<div class="appt ${x.status}" style="--ac:${B.color}">
+    return {t:new Date(x.starts_at).getTime(), html:`<div class="appt ${x.status}" style="--ac:${B.color}">
       <div class="row">
         <div class="time"><b>${hhmm(x.starts_at)}</b><span>${hhmm(x.ends_at)}</span></div>
         <div class="mid"><div class="cli">${x.customer_name}${x.id===nextId?'<span class="nexttag">Próximo</span>':''}</div>
@@ -548,7 +553,7 @@ function paintAgenda(){
   blocks.forEach(t=>{
     const B=SLUG[t.barber_id]||{name:'—',color:'var(--gold)'};
     const canRm=ACCESS.role==='admin'||t.barber_id===ACCESS.barber_id;
-    items.push({t:t.starts_at, html:`<div class="appt blocked" style="--ac:${B.color}">
+    items.push({t:new Date(t.starts_at).getTime(), html:`<div class="appt blocked" style="--ac:${B.color}">
       <div class="row">
         <div class="time"><b>${hhmm(t.starts_at)}</b><span>${hhmm(t.ends_at)}</span></div>
         <div class="mid"><div class="cli">Horário bloqueado</div>
@@ -559,7 +564,29 @@ function paintAgenda(){
       ${canRm?`<div class="acts"><button onclick="removeBlock('${t.id}')">Desbloquear</button></div>`:''}
     </div>`});
   });
-  items.sort((x,y)=>String(x.t).localeCompare(String(y.t)));
+  // grade completa do dia: mostra também os horários livres
+  const view = filter==='all' ? BARBERS.map(b=>b.id) : [filter];
+  gridForDay(d,40).forEach(([h,m])=>{
+    const s=new Date(d); s.setHours(h,m,0,0);
+    const e=new Date(s.getTime()+40*60000);
+    const free=view.filter(bid=>
+      !DAY_APPTS.some(x=>x.barber_id===bid && x.status!=='cancelled' && new Date(x.starts_at)<e && new Date(x.ends_at)>s) &&
+      !TIMEOFF.some(t=>t.barber_id===bid && new Date(t.starts_at)<e && new Date(t.ends_at)>s)
+    );
+    if(!free.length) return;
+    const names=free.map(bid=>(SLUG[bid]||{name:'—'}).name).join(' · ');
+    const ac=free.length===1?(SLUG[free[0]]||{color:'var(--gold)'}).color:'var(--gold-deep)';
+    items.push({t:s.getTime(), html:`<div class="appt free ${s<now?'past':''}" style="--ac:${ac}">
+      <div class="row">
+        <div class="time"><b>${pad(h)}:${pad(m)}</b></div>
+        <div class="mid"><div class="cli">Livre</div>
+          <div class="who"><span class="d"></span>${names}</div></div>
+        <div class="right"><div class="chip free">Livre</div></div>
+      </div>
+    </div>`});
+  });
+  if(!items.length){el('list').innerHTML=emptyBox('cal','Sem horários','Nenhum horário para este dia.');return;}
+  items.sort((x,y)=>x.t-y.t);
   el('list').innerHTML=items.map(x=>x.html).join('');
 }
 function emptyBox(ico,t,p){
