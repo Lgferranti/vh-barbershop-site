@@ -185,6 +185,13 @@
   .qrow label{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:6px}
   .qrow select,.qrow input{width:100%;border:1px solid var(--line);background:var(--bg);color:var(--cream);border-radius:11px;padding:12px;font-size:14px;font-family:inherit}
   .qrow select:focus,.qrow input:focus{outline:none;border-color:var(--gold)}
+  .qtog{display:flex;align-items:center;gap:9px;margin:2px 0 12px;cursor:pointer;user-select:none}
+  .qtog input{width:16px;height:16px;flex:0 0 auto;accent-color:var(--gold);cursor:pointer}
+  .qtog span{font-size:12px;color:var(--muted);line-height:1.35}
+  .qtog span b{color:var(--gold-lt);font-weight:700}
+  .qwarn{display:none;background:rgba(201,162,75,.08);border:1px solid var(--gold-deep);border-radius:10px;
+    padding:9px 11px;margin-bottom:10px;font-size:11.5px;color:var(--gold-lt);line-height:1.45}
+  .qwarn.on{display:block}
   .appt.blocked .cli{color:var(--muted)}
   .appt.free{background:transparent;border-style:dashed;border-left-style:solid}
   .appt.free .cli{color:var(--muted);font-weight:600}
@@ -314,7 +321,11 @@
       <div id="qNew" class="qform" style="display:none">
         <div class="qrow" id="qnBarberRow"><label>Barbeiro</label><select id="qnBarber" onchange="qnReloadSlots()"></select></div>
         <div class="qrow"><label>Serviço</label><select id="qnService" onchange="qnReloadSlots()"></select></div>
-        <div class="qrow"><label>Horário</label><select id="qnTime"></select></div>
+        <label class="qtog"><input type="checkbox" id="qnOff" onchange="qnToggleOff()">
+          <span>Encaixe <b>fora do expediente</b> — o cliente não vê esse horário no app</span></label>
+        <div class="qwarn" id="qnWarn">Horário livre das 05h às 00h. O sistema ainda impede choque com outro atendimento.</div>
+        <div class="qrow" id="qnTimeRow"><label>Horário</label><select id="qnTime"></select></div>
+        <div class="qrow" id="qnFreeRow" style="display:none"><label>Horário do encaixe</label><input id="qnFree" type="time" step="300" min="05:00"></div>
         <div class="qrow"><label>Cliente</label><input id="qnName" list="knownClients" placeholder="Nome do cliente" autocomplete="off" oninput="qnFillPhone()"><datalist id="knownClients"></datalist></div>
         <div class="qrow"><label>WhatsApp</label><input id="qnPhone" placeholder="(17) 9 9999-9999"></div>
         <button class="confirmclose" style="width:100%" onclick="qnBook()">Confirmar agendamento</button>
@@ -962,10 +973,10 @@ function renderFolgas(){
 /* ===== agendar cliente / bloquear horário ===== */
 function toggleQ(id){
   ['qNew','qBlock'].forEach(x=>{el(x).style.display = (x===id && el(x).style.display==='none') ? 'block' : 'none';});
-  if(el(id).style.display==='block'){ if(id==='qNew') qnReloadSlots(); else qbReloadSlots(); }
+  if(el(id).style.display==='block'){ if(id==='qNew'){ if(!el('qnOff').checked) qnReloadSlots(); } else qbReloadSlots(); }
 }
 function qRefresh(){
-  if(el('qNew').style.display==='block') qnReloadSlots();
+  if(el('qNew').style.display==='block' && !el('qnOff').checked) qnReloadSlots();
   if(el('qBlock').style.display==='block') qbReloadSlots();
 }
 function gridForDay(d,dur){
@@ -996,15 +1007,46 @@ function qnFillPhone(){
   const c=CLIENTS.find(x=>x.name===el('qnName').value);
   if(c) el('qnPhone').value=c.phone;
 }
+function qnToggleOff(){
+  const off=el('qnOff').checked;
+  el('qnTimeRow').style.display = off?'none':'block';
+  el('qnFreeRow').style.display = off?'block':'none';
+  el('qnWarn').classList.toggle('on',off);
+  if(!off) qnReloadSlots();
+}
 async function qnBook(){
-  const iso=el('qnTime').value, name=el('qnName').value.trim(), phone=el('qnPhone').value.trim();
-  if(!iso){alert('Escolha um horário.');return;}
+  const off=el('qnOff').checked;
+  const name=el('qnName').value.trim(), phone=el('qnPhone').value.trim();
+  let iso;
+  if(off){
+    const hm=el('qnFree').value;
+    if(!hm){alert('Digite o horário do encaixe.');return;}
+    const [h,m]=hm.split(':').map(Number);
+    if(h<5){alert('Encaixes só das 05h às 00h.');return;}
+    const d=new Date(dateFor(sel)); d.setHours(h,m,0,0);
+    if(d<new Date()){alert('Esse horário já passou.');return;}
+    iso=d.toISOString();
+  } else {
+    iso=el('qnTime').value;
+    if(!iso){alert('Escolha um horário.');return;}
+  }
   if(!name||phone.length<8){alert('Preencha nome e WhatsApp do cliente.');return;}
-  const {error}=await sb.rpc('book_appointment',{p_barber_id:el('qnBarber').value,p_service_id:el('qnService').value,p_start:iso,p_customer_name:name,p_customer_phone:phone});
-  if(error){alert((error.message||'').includes('ocupado')?'Esse horário acabou de ser ocupado.':'Não foi possível agendar.');qnReloadSlots();return;}
+  const {error}= off
+    ? await sb.rpc('book_appointment_staff',{p_barber_id:el('qnBarber').value,p_service_id:el('qnService').value,p_start:iso,p_customer_name:name,p_customer_phone:phone})
+    : await sb.rpc('book_appointment',{p_barber_id:el('qnBarber').value,p_service_id:el('qnService').value,p_start:iso,p_customer_name:name,p_customer_phone:phone});
+  if(error){
+    const m=error.message||'';
+    alert(/ocupado|já tem atendimento/i.test(m) ? 'Esse barbeiro já tem atendimento nesse horário.'
+        : /bloqueado/i.test(m) ? 'Esse horário está bloqueado para o barbeiro.'
+        : /janela|passado/i.test(m) ? m
+        : 'Não foi possível agendar.');
+    if(!off) qnReloadSlots();
+    return;
+  }
   if(!CLIENTS.find(x=>x.name===name)){CLIENTS.unshift({name,phone});
     el('knownClients').innerHTML=CLIENTS.map(c=>`<option value="${c.name.replace(/"/g,'&quot;')}">${c.phone}</option>`).join('');}
   el('qnName').value='';el('qnPhone').value='';
+  el('qnOff').checked=false; qnToggleOff();
   toggleQ('qNew');renderAgenda();reloadClients();
 }
 async function qbReloadSlots(){
