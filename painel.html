@@ -185,6 +185,14 @@
   .qrow label{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:6px}
   .qrow select,.qrow input{width:100%;border:1px solid var(--line);background:var(--bg);color:var(--cream);border-radius:11px;padding:12px;font-size:14px;font-family:inherit}
   .qrow select:focus,.qrow input:focus{outline:none;border-color:var(--gold)}
+  .pushbar{display:none;align-items:center;gap:11px;margin:10px 20px 0;padding:12px 14px;
+    background:rgba(201,162,75,.08);border:1px solid var(--gold-deep);border-radius:12px}
+  .pushbar.on{display:flex}
+  .pushbar .tx{flex:1;min-width:0;font-size:12px;color:var(--gold-lt);line-height:1.4}
+  .pushbar .tx b{display:block;font-size:13px;color:var(--cream);font-weight:700;margin-bottom:2px}
+  .pushbar button{flex:0 0 auto;border:none;background:var(--grad-gold);color:#15110a;border-radius:10px;
+    padding:10px 14px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit}
+  .pushbar .no{background:transparent;border:1px solid var(--line);color:var(--muted);padding:10px}
   .qtog{display:flex;align-items:center;gap:9px;margin:2px 0 12px;cursor:pointer;user-select:none}
   .qtog input{width:16px;height:16px;flex:0 0 auto;accent-color:var(--gold);cursor:pointer}
   .qtog span{font-size:12px;color:var(--muted);line-height:1.35}
@@ -313,6 +321,11 @@
         <button class="chip-f" data-f="joao" onclick="setFilter('joao')"><span class="dot" style="background:var(--silver)"></span>João</button>
       </div>
       <div class="daylab" id="daylab"></div>
+      <div class="pushbar" id="pushBar">
+        <span class="tx"><b>Ativar avisos no celular</b>Receba na hora quando marcarem um horário</span>
+        <button onclick="ativarAvisos()">Ativar</button>
+        <button class="no" onclick="dispensarAvisos()">Agora não</button>
+      </div>
       <div id="dayAction"></div>
       <div class="qbtns" id="qbtns">
         <button class="qbtn" onclick="toggleQ('qNew')">+ Agendar cliente</button>
@@ -478,6 +491,7 @@ async function enter(){
   if(acc&&acc.role) ACCESS=acc;
   if(ACCESS.role==='barber'&&ACCESS.barber_id){ filter=ACCESS.barber_id; finBarber=ACCESS.barber_id; }
   await loadRefs();
+  checarAvisos();
   if(ACCESS.role==='barber'){ el('chips').style.display='none'; el('finBarberChips').style.display='none'; el('navT').style.display='none'; }
   const {data:u}=await sb.auth.getUser();
   let who=(u&&u.user&&u.user.email)?u.user.email.split('@')[0]:'';
@@ -1074,6 +1088,52 @@ async function removeBlock(id){
   if(error){alert('Não foi possível desbloquear.');return;}
   TIMEOFF=TIMEOFF.filter(x=>x.id!==id);
   paintAgenda();
+}
+
+/* ===== avisos push ===== */
+const VAPID='BPEXceHiKTNpkwfHYQuwiVw2B0q-MT4OWkeJ7J7yj4Zwe6feeaB-Q0gq60yfMn7AnaiWnOXv9e_cX4tObvT8fkg';
+function b64ToU8(b){
+  const pad='='.repeat((4-b.length%4)%4);
+  const raw=atob((b+pad).replace(/-/g,'+').replace(/_/g,'/'));
+  return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));
+}
+async function checarAvisos(){
+  try{
+    if(!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    if(localStorage.getItem('vh_push_no')==='1') return;
+    if(Notification.permission==='denied') return;
+    const reg=await navigator.serviceWorker.ready;
+    const sub=await reg.pushManager.getSubscription();
+    if(sub && Notification.permission==='granted') return;   // já ativo
+    el('pushBar').classList.add('on');
+  }catch(e){}
+}
+async function ativarAvisos(){
+  try{
+    const perm=await Notification.requestPermission();
+    if(perm!=='granted'){
+      alert(perm==='denied'
+        ? 'As notificações estão bloqueadas. Libere nos ajustes do navegador para este site.'
+        : 'Não foi possível ativar agora.');
+      return;
+    }
+    const reg=await navigator.serviceWorker.ready;
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64ToU8(VAPID)});
+    const j=sub.toJSON();
+    const {error}=await sb.rpc('register_push',{
+      p_endpoint:j.endpoint, p_p256dh:j.keys.p256dh, p_auth:j.keys.auth,
+      p_label:(navigator.userAgent.match(/iPhone|Android|iPad/)||['navegador'])[0]});
+    if(error){alert('Não foi possível registrar o aparelho.');return;}
+    el('pushBar').classList.remove('on');
+    alert('Pronto! A partir de agora você recebe um aviso aqui no celular a cada novo agendamento.');
+  }catch(e){
+    alert('Seu navegador não permitiu ativar. No iPhone, adicione o painel à tela de início e abra por lá.');
+  }
+}
+function dispensarAvisos(){
+  try{ localStorage.setItem('vh_push_no','1'); }catch(e){}
+  el('pushBar').classList.remove('on');
 }
 
 boot();
