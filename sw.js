@@ -1,5 +1,5 @@
 // VH Barbershop — service worker (rede primeiro; cache só como reserva offline)
-const C='vh-v2';
+const C='vh-v3';
 self.addEventListener('install',e=>self.skipWaiting());
 self.addEventListener('activate',e=>e.waitUntil(clients.claim()));
 self.addEventListener('fetch',e=>{
@@ -19,8 +19,11 @@ self.addEventListener('push', e=>{
     body: d.corpo || '',
     icon: 'icons/icon-192.png',
     badge: 'icons/icon-192.png',
-    tag: 'vh-agendamento',
+    tag: 'vh-' + Date.now(),        // cada aviso é único: nunca substitui em silêncio
     renotify: true,
+    silent: false,                  // usa o som padrão do sistema
+    vibrate: [200, 90, 200],        // vibração (Android)
+    requireInteraction: true,       // fica na tela até ser tocado
     data: { url: '/painel' }
   }));
 });
