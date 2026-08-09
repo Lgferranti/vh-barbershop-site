@@ -218,6 +218,24 @@
     padding:9px 11px;margin-bottom:10px;font-size:11.5px;color:var(--gold-lt);line-height:1.45}
   .qwarn.on{display:block}
   .appt.blocked .cli{color:var(--muted)}
+  .appt .acts2{display:flex;gap:8px;margin-top:8px}
+  .appt .acts2 button{flex:1;border:1px solid var(--line);background:transparent;color:var(--muted);
+    border-radius:10px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
+  .appt .acts2 button:hover{border-color:var(--gold);color:var(--gold-lt)}
+  .appt .price.custom{color:var(--gold-lt)}
+  .appt .price .tagv{display:block;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-2);font-weight:700}
+  .edt{margin-top:10px;background:var(--bg);border:1px solid var(--gold-deep);border-radius:12px;padding:12px}
+  .edt .lab{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:700;margin-bottom:8px}
+  .edt .lin{display:flex;gap:8px;margin-bottom:9px}
+  .edt input{flex:1;min-width:0;border:1px solid var(--line);background:var(--panel);color:var(--cream);
+    border-radius:10px;padding:11px;font-size:14px;font-family:inherit}
+  .edt input:focus{outline:none;border-color:var(--gold)}
+  .edt .bts{display:flex;gap:8px}
+  .edt .bts button{flex:1;border:none;border-radius:10px;padding:11px;font-size:12.5px;font-weight:800;
+    cursor:pointer;font-family:inherit}
+  .edt .bts .ok{background:var(--grad-gold);color:#15110a}
+  .edt .bts .no{background:transparent;border:1px solid var(--line);color:var(--muted)}
+  .edt .hint{font-size:11px;color:var(--muted);margin-bottom:9px;line-height:1.45}
   .appt.free{background:transparent;border-style:dashed;border-left-style:solid}
   .appt.free .cli{color:var(--muted);font-weight:600}
   .appt.free .time b{color:var(--muted)}
@@ -530,6 +548,8 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY);
 const el=id=>document.getElementById(id);
 const pad=n=>String(n).padStart(2,'0');
 const fmt=v=>'R$ '+Math.round(v).toLocaleString('pt-BR');
+/* valor do atendimento: usa o combinado na hora, se houver */
+const valorDe=x=>((x.price_cents_override!=null?x.price_cents_override:(x.services?x.services.price_cents:0))||0)/100;
 const DOW=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
 const DOW_L=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
 const MON=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
@@ -992,6 +1012,69 @@ async function setStatus(id,st){
   const a=DAY_APPTS.find(x=>x.id===id); if(a)a.status=st;
   paintAgenda(); reloadClients();
 }
+function achaAppt(id){ return DAY_APPTS.find(x=>x.id===id); }
+function fecharEdt(id){ const e=el('edt-'+id); if(e) e.innerHTML=''; }
+
+function abrirRemarcar(id){
+  const x=achaAppt(id); if(!x) return;
+  const d=new Date(x.starts_at);
+  el('edt-'+id).innerHTML=`<div class="edt">
+    <div class="lab">Mudar horário</div>
+    <div class="hint">${x.services.name} · ${x.services.duration_min}min — o sistema recusa se bater com outro atendimento.</div>
+    <div class="lin">
+      <input type="date" id="rmD-${id}" value="${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}">
+      <input type="time" id="rmH-${id}" step="300" value="${pad(d.getHours())}:${pad(d.getMinutes())}">
+    </div>
+    <div class="bts">
+      <button class="ok" onclick="salvarRemarcar('${id}')">Salvar</button>
+      <button class="no" onclick="fecharEdt('${id}')">Cancelar</button>
+    </div></div>`;
+}
+async function salvarRemarcar(id){
+  const dv=el('rmD-'+id).value, hv=el('rmH-'+id).value;
+  if(!dv||!hv){ alert('Escolha a data e a hora.'); return; }
+  const [a,m,dd]=dv.split('-').map(Number); const [h,mi]=hv.split(':').map(Number);
+  const novo=new Date(a,m-1,dd,h,mi,0,0);
+  const {error}=await sb.rpc('reschedule_appointment',{p_id:id,p_start:novo.toISOString()});
+  if(error){
+    const t=error.message||'';
+    alert(/nesse horário|Já existe/i.test(t)?'Já existe outro atendimento nesse horário.'
+        :/bloqueado/i.test(t)?'Esse horário está bloqueado.'
+        :/janela/i.test(t)?'Horário fora da janela (05:00 às 00:00).'
+        :'Não foi possível mudar o horário.');
+    return;
+  }
+  fecharEdt(id);
+  await renderAgenda();
+  await reloadClients();
+}
+
+function abrirValor(id){
+  const x=achaAppt(id); if(!x) return;
+  const atual=valorDe(x);
+  el('edt-'+id).innerHTML=`<div class="edt">
+    <div class="lab">Alterar valor</div>
+    <div class="hint">Tabela: ${fmt(x.services.price_cents/100)}. Digite o valor combinado (pacote, desconto). Deixe vazio para voltar ao preço da tabela.</div>
+    <div class="lin"><input type="number" id="vlR-${id}" inputmode="decimal" step="1" min="0" placeholder="Ex.: 120" value="${x.price_cents_override!=null?Math.round(atual):''}"></div>
+    <div class="bts">
+      <button class="ok" onclick="salvarValor('${id}')">Salvar</button>
+      <button class="no" onclick="fecharEdt('${id}')">Cancelar</button>
+    </div></div>`;
+}
+async function salvarValor(id){
+  const v=(el('vlR-'+id).value||'').trim().replace(',','.');
+  let cents=null;
+  if(v!==''){
+    const n=Number(v);
+    if(!isFinite(n)||n<0){ alert('Valor inválido.'); return; }
+    cents=Math.round(n*100);
+  }
+  const {error}=await sb.rpc('set_appointment_price',{p_id:id,p_cents:cents});
+  if(error){ alert('Não foi possível alterar o valor.'); return; }
+  fecharEdt(id);
+  await renderAgenda();
+}
+
 let agReq=0;
 async function renderAgenda(){
   const myReq=++agReq;
@@ -1006,7 +1089,7 @@ async function renderAgenda(){
   else el('list').style.opacity='.45';
   const [a,b]=dayBounds(d);
   const {data,error}=await sb.from('appointments')
-    .select('id,starts_at,ends_at,status,customer_name,customer_phone,barber_id,services(name,price_cents,duration_min)')
+    .select('id,starts_at,ends_at,status,customer_name,customer_phone,barber_id,price_cents_override,services(name,price_cents,duration_min)')
     .gte('starts_at',a).lte('starts_at',b).order('starts_at');
   if(myReq!==agReq) return;                    // resposta antiga: descarta
   el('list').style.opacity='1';
@@ -1025,7 +1108,7 @@ function paintAgenda(){
   let list=DAY_APPTS.filter(x=>filter==='all'||x.barber_id===filter);
   const blocks=dayBlocks(d);
   let count=0,rev=0,done=0;
-  list.forEach(x=>{if(x.status!=='cancelled')count++;if(x.status==='done'||x.status==='confirmed')rev+=x.services.price_cents/100;if(x.status==='done')done++;});
+  list.forEach(x=>{if(x.status!=='cancelled')count++;if(x.status==='done'||x.status==='confirmed')rev+=valorDe(x);if(x.status==='done')done++;});
   el('stCount').textContent=count;el('stRev').textContent=fmt(rev);el('stDone').textContent=done;
   const now=new Date();
   let nextId=null;
@@ -1039,12 +1122,16 @@ function paintAgenda(){
         <div class="mid"><div class="cli" onclick="openFicha('${normPk(x.customer_phone)}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px">${x.customer_name}${x.id===nextId?'<span class="nexttag">Próximo</span>':''}</div>
           <div class="srv">${x.services.name} · ${x.services.duration_min}min</div>
           <div class="who"><span class="d"></span>${B.name}</div></div>
-        <div class="right"><div class="price">${fmt(x.services.price_cents/100)}</div><div class="chip ${x.status}">${LABEL[x.status]}</div></div>
+        <div class="right"><div class="price ${x.price_cents_override!=null?'custom':''}">${fmt(valorDe(x))}${x.price_cents_override!=null?'<span class="tagv">combinado</span>':''}</div><div class="chip ${x.status}">${LABEL[x.status]}</div></div>
       </div>
       ${acts?`<div class="acts">
         <button class="ok" onclick="setStatus('${x.id}','done')">Concluir</button>
         <button class="bad" onclick="setStatus('${x.id}','no_show')">Faltou</button>
-        <button onclick="setStatus('${x.id}','cancelled')">Cancelar</button></div>`:''}
+        <button onclick="setStatus('${x.id}','cancelled')">Cancelar</button></div>
+      <div class="acts2">
+        <button onclick="abrirRemarcar('${x.id}')">Mudar horário</button>
+        <button onclick="abrirValor('${x.id}')">Alterar valor</button></div>
+      <div id="edt-${x.id}"></div>`:''}
     </div>`};});
   blocks.forEach(t=>{
     const B=SLUG[t.barber_id]||{name:'—',color:'var(--gold)'};
@@ -1114,14 +1201,14 @@ async function fetchRange(from,to){
   const a=new Date(from);a.setHours(0,0,0,0);
   const b=new Date(to);b.setHours(23,59,59,999);
   const {data}=await sb.from('appointments')
-    .select('starts_at,status,barber_id,services(price_cents)')
+    .select('starts_at,status,barber_id,price_cents_override,services(price_cents)')
     .gte('starts_at',a.toISOString()).lte('starts_at',b.toISOString())
     .in('status',['confirmed','done']);
   return data||[];
 }
 function groupSum(rows,keyFn){
   const m=new Map();
-  rows.forEach(r=>{const k=keyFn(r);m.set(k,(m.get(k)||0)+r.services.price_cents/100);});
+  rows.forEach(r=>{const k=keyFn(r);m.set(k,(m.get(k)||0)+valorDe(r));});
   return m;
 }
 let finReq=0;
@@ -1138,8 +1225,8 @@ async function renderFin(){
   el('finBody').style.opacity='1';
   const mine=x=>finBarber==='all'||x.barber_id===finBarber;
   const cur=rows.filter(mine), prev=prevRows.filter(mine);
-  const total=cur.reduce((s,x)=>s+x.services.price_cents/100,0);
-  const prevTotal=prev.reduce((s,x)=>s+x.services.price_cents/100,0);
+  const total=cur.reduce((s,x)=>s+valorDe(x),0);
+  const prevTotal=prev.reduce((s,x)=>s+valorDe(x),0);
   const n=cur.length, ticket=n?total/n:0;
   let cmp='sem base de comparação';
   if(prevTotal>0){const pct=Math.round((total-prevTotal)/prevTotal*100);const up=pct>=0;
@@ -1148,7 +1235,7 @@ async function renderFin(){
   let bars=[];const col=(finBarber!=='all'&&SLUG[finBarber]&&SLUG[finBarber].key==='joao')?'var(--silver)':'var(--gold)';
   const byDay=groupSum(cur,x=>dateKey(new Date(x.starts_at)));
   if(r.chart==='barber'&&finBarber==='all'){
-    bars=BARBERS.map((b,i)=>({label:b.name.split(' ')[0],value:cur.filter(x=>x.barber_id===b.id).reduce((s,x)=>s+x.services.price_cents/100,0),color:i===0?'var(--gold)':'var(--silver)'}));
+    bars=BARBERS.map((b,i)=>({label:b.name.split(' ')[0],value:cur.filter(x=>x.barber_id===b.id).reduce((s,x)=>s+valorDe(x),0),color:i===0?'var(--gold)':'var(--silver)'}));
   } else {
     // linha do tempo por dia/semana/mês conforme o tamanho
     const span=len;
@@ -1159,8 +1246,8 @@ async function renderFin(){
   }
   const max=Math.max(1,...bars.map(b=>b.value));
   const labRight=finBarber==='all'?'faturamento':(SLUG[finBarber]?SLUG[finBarber].name:'');
-  const vTot=cur.filter(x=>SLUG[x.barber_id]&&SLUG[x.barber_id].key==='victor').reduce((s,x)=>s+x.services.price_cents/100,0);
-  const jTot=cur.filter(x=>SLUG[x.barber_id]&&SLUG[x.barber_id].key==='joao').reduce((s,x)=>s+x.services.price_cents/100,0);
+  const vTot=cur.filter(x=>SLUG[x.barber_id]&&SLUG[x.barber_id].key==='victor').reduce((s,x)=>s+valorDe(x),0);
+  const jTot=cur.filter(x=>SLUG[x.barber_id]&&SLUG[x.barber_id].key==='joao').reduce((s,x)=>s+valorDe(x),0);
   const vPct=total?Math.round(vTot/total*100):50;
   el('finBody').innerHTML=`
     <div class="total"><div class="lab">${r.lab} · ${labRight}</div><div class="big">${fmt(total)}</div><div class="cmp">${cmp}</div></div>
