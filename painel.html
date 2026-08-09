@@ -222,6 +222,49 @@
     padding:9px 11px;margin-bottom:10px;font-size:11.5px;color:var(--gold-lt);line-height:1.45}
   .qwarn.on{display:block}
   .appt.blocked .cli{color:var(--muted)}
+  /* ---- alternador de visão ---- */
+  .vmode{display:flex;gap:6px;padding:2px 20px 6px}
+  .vmode button{flex:1;border:1px solid var(--line-soft);background:transparent;color:var(--muted);
+    border-radius:10px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
+  .vmode button.on{background:var(--panel);border-color:var(--gold-deep);color:var(--gold-lt)}
+
+  /* ---- linha do tempo ---- */
+  .tl{display:flex;gap:0;padding:6px 16px 20px;position:relative}
+  .tl-h{display:flex;padding:0 16px;margin-bottom:4px;position:sticky;top:0;z-index:3;background:var(--bg)}
+  .tl-h .sp{width:46px;flex:0 0 auto}
+  .tl-h .cn{flex:1;text-align:center;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--muted);font-weight:800;padding:6px 0;border-bottom:1px solid var(--line-soft)}
+  .tl-h .cn i{font-style:normal;display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .tl-times{width:46px;flex:0 0 auto;position:relative}
+  .tl-times div{position:absolute;left:0;right:6px;text-align:right;font-size:10px;color:var(--muted-2);
+    transform:translateY(-6px);font-variant-numeric:tabular-nums}
+  .tl-times div.hh{color:var(--muted);font-weight:700}
+  .tl-cols{flex:1;display:flex;gap:8px;position:relative}
+  .tl-col{flex:1;position:relative;border-left:1px solid var(--line-soft);min-width:0}
+  .tl-line{position:absolute;left:0;right:0;border-top:1px solid rgba(180,146,94,.07)}
+  .tl-line.hh{border-top-color:var(--line-soft)}
+  .tl-now{position:absolute;left:0;right:0;border-top:1.5px solid #e6938d;z-index:4}
+  .tl-now::before{content:"";position:absolute;left:-4px;top:-4px;width:7px;height:7px;border-radius:50%;background:#e6938d}
+  .tl-b{position:absolute;left:3px;right:3px;border-radius:8px;padding:5px 7px;overflow:hidden;
+    font-size:11px;line-height:1.25;cursor:pointer;border-left:3px solid var(--ac,var(--gold));
+    background:var(--panel);border-top:1px solid var(--line-soft);border-right:1px solid var(--line-soft);
+    border-bottom:1px solid var(--line-soft);transition:.15s}
+  .tl-b:hover{border-color:var(--gold-deep);transform:translateY(-1px)}
+  .tl-b b{display:block;color:var(--cream);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tl-b span{display:block;color:var(--muted);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tl-b.done{opacity:.62}
+  .tl-b.no_show{border-left-color:#c2645e}
+  .tl-b.no_show b{color:#e6938d;text-decoration:line-through}
+  .tl-b.cancelled{display:none}
+  .tl-b.forced{border-style:dashed}
+  .tl-pausa{position:absolute;left:0;right:0;background:repeating-linear-gradient(45deg,rgba(180,146,94,.06),rgba(180,146,94,.06) 6px,transparent 6px,transparent 12px);
+    border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);z-index:0}
+  .tl-pausa span{position:absolute;top:4px;left:8px;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted-2);font-weight:700}
+  .tl-bloq{position:absolute;left:3px;right:3px;border-radius:8px;z-index:1;
+    background:rgba(194,100,94,.1);border:1px dashed rgba(194,100,94,.45);padding:5px 7px;font-size:10px;color:#e6b6b2}
+  .tl-livre{position:absolute;left:3px;right:3px;border-radius:8px;z-index:0;cursor:pointer;
+    border:1px dashed var(--line-soft)}
+  .tl-livre:hover{border-color:var(--gold-deep);background:rgba(201,162,75,.05)}
   .appt .acts2{display:flex;gap:8px;margin-top:8px}
   .appt .acts2 button{flex:1;border:1px solid var(--line);background:transparent;color:var(--muted);
     border-radius:10px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
@@ -396,6 +439,10 @@
         <button class="chip-f" data-f="joao" onclick="setFilter('joao')"><span class="dot" style="background:var(--silver)"></span>João</button>
       </div>
       <div class="daylab" id="daylab"></div>
+      <div class="vmode">
+        <button id="vmLista" onclick="setVMode('lista')">Lista</button>
+        <button id="vmLinha" onclick="setVMode('linha')">Linha do tempo</button>
+      </div>
       <div class="pushbar" id="pushBar">
         <span class="tx"><b>Ativar avisos no celular</b>Receba na hora quando marcarem um horário</span>
         <button onclick="ativarAvisos()">Ativar</button>
@@ -570,6 +617,8 @@ let sel=0, filter='all', period='dia', finBarber='all', folBarber=null;
 let ACCESS={role:'admin',barber_id:null};
 let BARBERS=[], CLOSURES=[], TIMEOFF=[], DAY_APPTS=[], SVCS=[], BH=[], CLIENTS=[];
 let CLIENT_STATS=[], cliFilter='all';
+let VMODE=(()=>{ try{ return localStorage.getItem('vh_vmode')||'lista'; }catch(e){ return 'lista'; } })();
+const TL_PX=1.7;   // 1 minuto = 1.7px  (15 min ≈ 26px)
 let SLUG={}; // barber_id -> {name, slug, color, key}
 
 function dateFor(off){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+off);return d;}
@@ -592,6 +641,7 @@ async function enter(){
   if(acc&&acc.role) ACCESS=acc;
   if(ACCESS.role==='barber'&&ACCESS.barber_id){ filter=ACCESS.barber_id; finBarber=ACCESS.barber_id; }
   await loadRefs();
+  setVMode(VMODE);
   checarAvisos();
   if(ACCESS.role==='barber'){ el('chips').style.display='none'; el('finBarberChips').style.display='none'; el('navT').style.display='none'; }
   const {data:u}=await sb.auth.getUser();
@@ -1122,6 +1172,130 @@ function dayBlocks(d){
     && new Date(t.starts_at)<=b0 && new Date(t.ends_at)>=a0
     && (new Date(t.ends_at)-new Date(t.starts_at))<86000000);   // só bloqueios de horário (férias viram banner)
 }
+function setVMode(m){
+  VMODE=m; try{ localStorage.setItem('vh_vmode',m); }catch(e){}
+  el('vmLista').classList.toggle('on',m==='lista');
+  el('vmLinha').classList.toggle('on',m==='linha');
+  paintAgenda();
+}
+function minutosDoDia(iso){
+  const d=new Date(iso); return d.getHours()*60+d.getMinutes();
+}
+function faixasDoDia(d){
+  const wd=d.getDay();
+  return BH.filter(h=>h.weekday===wd)
+    .map(h=>[toMinStr(String(h.opens)), toMinStr(String(h.closes))])
+    .sort((a,b)=>a[0]-b[0]);
+}
+function toMinStr(t){ const [h,m]=t.split(':').map(Number); return h*60+(m||0); }
+function hhmmMin(m){ return pad(Math.floor(m/60))+':'+pad(m%60); }
+
+function paintTimeline(){
+  const d=dateFor(sel);
+  const cols = filter==='all' ? BARBERS : BARBERS.filter(b=>b.id===filter);
+  const faixas=faixasDoDia(d);
+  const apts=DAY_APPTS.filter(x=>x.status!=='cancelled' && (filter==='all'||x.barber_id===filter));
+  const blocos=dayBlocks(d);
+
+  // janela do dia: expediente + o que estiver fora dele
+  let ini = faixas.length ? faixas[0][0] : 9*60;
+  let fim = faixas.length ? faixas[faixas.length-1][1] : 19*60;
+  apts.forEach(x=>{ ini=Math.min(ini,minutosDoDia(x.starts_at)); fim=Math.max(fim,minutosDoDia(x.ends_at)||fim); });
+  blocos.forEach(t=>{ ini=Math.min(ini,minutosDoDia(t.starts_at)); fim=Math.max(fim,minutosDoDia(t.ends_at)); });
+  ini=Math.floor(ini/60)*60; fim=Math.ceil(fim/60)*60;
+  if(fim<=ini) fim=ini+60;
+  const H=(fim-ini)*TL_PX;
+  const y=m=>(m-ini)*TL_PX;
+
+  // régua de horários (15 em 15)
+  let times='', linhas='';
+  for(let m=ini;m<=fim;m+=15){
+    const cheia=m%60===0;
+    times+=`<div class="${cheia?'hh':''}" style="top:${y(m)}px">${cheia?hhmmMin(m):hhmmMin(m).slice(3)}</div>`;
+    linhas+=`<div class="tl-line ${cheia?'hh':''}" style="top:${y(m)}px"></div>`;
+  }
+
+  // pausas (fora das faixas de atendimento)
+  let pausas='';
+  for(let i=0;i<faixas.length;i++){
+    if(i===0 && faixas[0][0]>ini) pausas+=`<div class="tl-pausa" style="top:0;height:${y(faixas[0][0])}px"></div>`;
+    if(i<faixas.length-1){
+      const a=faixas[i][1], b=faixas[i+1][0];
+      if(b>a) pausas+=`<div class="tl-pausa" style="top:${y(a)}px;height:${(b-a)*TL_PX}px"><span>Intervalo</span></div>`;
+    }
+    if(i===faixas.length-1 && faixas[i][1]<fim)
+      pausas+=`<div class="tl-pausa" style="top:${y(faixas[i][1])}px;height:${(fim-faixas[i][1])*TL_PX}px"></div>`;
+  }
+  if(!faixas.length) pausas=`<div class="tl-pausa" style="top:0;height:${H}px"><span>Fechado</span></div>`;
+
+  // marcador de agora
+  let agora='';
+  if(sel===0){
+    const n=new Date(); const nm=n.getHours()*60+n.getMinutes();
+    if(nm>=ini && nm<=fim) agora=`<div class="tl-now" style="top:${y(nm)}px"></div>`;
+  }
+
+  const colHTML=cols.map(b=>{
+    const meus=apts.filter(x=>x.barber_id===b.id);
+    const bl=blocos.filter(t=>t.barber_id===b.id);
+    const B=SLUG[b.id]||{color:'var(--gold)'};
+    let inner=linhas+pausas;
+    bl.forEach(t=>{
+      const a=minutosDoDia(t.starts_at), z=minutosDoDia(t.ends_at);
+      inner+=`<div class="tl-bloq" style="top:${y(a)}px;height:${Math.max(18,(z-a)*TL_PX-2)}px">${t.reason||'Bloqueado'}</div>`;
+    });
+    meus.forEach(x=>{
+      const a=minutosDoDia(x.starts_at), z=minutosDoDia(x.ends_at);
+      const alt=Math.max(26,(z-a)*TL_PX-2);
+      inner+=`<div class="tl-b ${x.status} ${x.forced?'forced':''}" style="top:${y(a)}px;height:${alt}px;--ac:${B.color}"
+        onclick="abrirBloco('${x.id}')">
+        <b>${x.customer_name}</b>
+        ${alt>38?`<span>${x.services.name}</span>`:''}
+        ${alt>54?`<span>${hhmm(x.starts_at)} – ${hhmm(x.ends_at)} · ${fmt(valorDe(x))}</span>`:''}
+      </div>`;
+    });
+    return `<div class="tl-col">${inner}${agora}</div>`;
+  }).join('');
+
+  el('list').innerHTML=`
+    <div class="tl-h"><div class="sp"></div>${cols.map(b=>{
+      const B=SLUG[b.id]||{color:'var(--gold)'};
+      return `<div class="cn"><i style="background:${B.color}"></i>${b.name.split(' ')[0]}</div>`;}).join('')}</div>
+    <div class="tl" style="height:${H+10}px">
+      <div class="tl-times">${times}</div>
+      <div class="tl-cols">${colHTML}</div>
+    </div>`;
+}
+
+function abrirBloco(id){
+  const x=achaAppt(id); if(!x) return;
+  const B=SLUG[x.barber_id]||{name:'—'};
+  const acts=x.status==='confirmed';
+  el('fichaBody').innerHTML=`
+    <div class="sheet-grip"></div>
+    <div class="fi-nm">${x.customer_name}</div>
+    <div class="fi-ph">${hhmm(x.starts_at)} – ${hhmm(x.ends_at)} · ${B.name}</div>
+    <div class="fi-rows" style="margin-top:14px">
+      <div class="fi-row"><span class="k">Serviço</span><span class="v">${x.services.name} · ${x.services.duration_min}min</span></div>
+      <div class="fi-row"><span class="k">Valor</span><span class="v">${fmt(valorDe(x))}${x.price_cents_override!=null?' (combinado)':''}</span></div>
+      <div class="fi-row"><span class="k">Situação</span><span class="v">${LABEL[x.status]}</span></div>
+      <div class="fi-row"><span class="k">WhatsApp</span><span class="v">${x.customer_phone||'—'}</span></div>
+    </div>
+    ${acts?`<div class="acts" style="margin-top:14px">
+      <button class="ok" onclick="setStatus('${x.id}','done');closeFicha()">Concluir</button>
+      <button class="bad" onclick="setStatus('${x.id}','no_show');closeFicha()">Faltou</button>
+      <button onclick="setStatus('${x.id}','cancelled');closeFicha()">Cancelar</button></div>
+    <div class="acts2" style="margin-top:9px">
+      <button onclick="abrirRemarcar('${x.id}')">Mudar horário</button>
+      <button onclick="abrirValor('${x.id}')">Alterar valor</button></div>
+    <div id="edt-${x.id}"></div>`:''}
+    <div class="fi-acts" style="margin-top:14px">
+      <a class="fi-wpp" href="${waLink(x.customer_phone)}" target="_blank" rel="noopener">WhatsApp</a>
+      <button class="fi-close" onclick="closeFicha()">Fechar</button>
+    </div>`;
+  el('ficha').classList.add('on');
+}
+
 function paintAgenda(){
   const d=dateFor(sel);
   let list=DAY_APPTS.filter(x=>filter==='all'||x.barber_id===filter);
@@ -1129,6 +1303,7 @@ function paintAgenda(){
   let count=0,rev=0,done=0;
   list.forEach(x=>{if(x.status!=='cancelled')count++;if(x.status==='done'||x.status==='confirmed')rev+=valorDe(x);if(x.status==='done')done++;});
   el('stCount').textContent=count;el('stRev').textContent=fmt(rev);el('stDone').textContent=done;
+  if(VMODE==='linha'){ paintTimeline(); return; }
   const now=new Date();
   let nextId=null;
   if(sel===0){const up=list.filter(x=>x.status==='confirmed'&&new Date(x.starts_at)>=now);if(up.length)nextId=up[0].id;}
