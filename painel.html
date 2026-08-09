@@ -194,6 +194,22 @@
   .pushbar button{flex:0 0 auto;border:none;background:var(--grad-gold);color:#15110a;border-radius:10px;
     padding:10px 14px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit}
   .pushbar .no{background:transparent;border:1px solid var(--line);color:var(--muted);padding:10px}
+  .datebar{display:flex;align-items:center;gap:8px;padding:0 20px 2px}
+  .datebar .mon{flex:1;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .datebar button{border:1px solid var(--line);background:var(--panel);color:var(--gold-lt);border-radius:9px;
+    padding:7px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px}
+  .datebar button:hover{border-color:var(--gold)}
+  .datebar input[type=date]{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+  .svclist{max-height:186px;overflow-y:auto;border:1px solid var(--line);border-radius:11px;padding:2px 12px;background:var(--bg)}
+  .svcrow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-soft)}
+  .svcrow:last-child{border-bottom:none}
+  .svcrow input{width:17px;height:17px;flex:0 0 auto;accent-color:var(--gold)}
+  .svcrow .nm{flex:1;min-width:0;font-size:13px;color:var(--cream)}
+  .svcrow .nm span{display:block;font-size:11px;color:var(--muted);margin-top:1px}
+  .svcrow .pr{font-size:12.5px;font-weight:700;color:var(--gold-lt);white-space:nowrap}
+  .svctot{display:flex;justify-content:space-between;margin-top:9px;padding-top:9px;border-top:1px solid var(--line-soft);
+    font-size:12.5px;color:var(--muted)}
+  .svctot b{color:var(--gold-lt);font-weight:800}
   .qtog{display:flex;align-items:center;gap:9px;margin:2px 0 12px;cursor:pointer;user-select:none}
   .qtog input{width:16px;height:16px;flex:0 0 auto;accent-color:var(--gold);cursor:pointer}
   .qtog span{font-size:12px;color:var(--muted);line-height:1.35}
@@ -332,6 +348,15 @@
   <div class="body">
     <!-- ===== AGENDA ===== -->
     <div class="view on" id="viewAgenda">
+      <div class="datebar">
+        <span class="mon" id="monLab"></span>
+        <button onclick="voltarHoje()" id="btnHoje" style="display:none">Hoje</button>
+        <button onclick="abrirCalendario()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
+          Escolher data
+        </button>
+        <input type="date" id="jumpDate" onchange="pularPara(this.value)">
+      </div>
       <div class="dates" id="dates"></div>
       <div class="stats">
         <div class="stat"><b id="stCount">0</b><span>Agend.</span></div>
@@ -356,7 +381,17 @@
       </div>
       <div id="qNew" class="qform" style="display:none">
         <div class="qrow" id="qnBarberRow"><label>Barbeiro</label><select id="qnBarber" onchange="qnReloadSlots()"></select></div>
-        <div class="qrow"><label>Serviço</label><select id="qnService" onchange="qnReloadSlots()"></select></div>
+        <div class="qrow"><label>Serviços <span id="qnSvcHint" style="text-transform:none;letter-spacing:0;color:var(--muted-2);font-weight:400">(pode marcar mais de um)</span></label>
+          <div class="svclist" id="qnSvcList"></div>
+          <div class="svctot"><span id="qnTotDur">—</span><b id="qnTotPreco"></b></div>
+        </div>
+        <div class="qrow"><label>Repetir</label><select id="qnRepeat">
+          <option value="1">Só nesta data</option>
+          <option value="4">Toda semana · 4 semanas</option>
+          <option value="8">Toda semana · 8 semanas</option>
+          <option value="12">Toda semana · 12 semanas</option>
+          <option value="26">Toda semana · 6 meses</option>
+        </select></div>
         <label class="qtog"><input type="checkbox" id="qnOff" onchange="qnToggleOff()">
           <span>Encaixe <b>fora do expediente</b> — o cliente não vê esse horário no app</span></label>
         <div class="qwarn" id="qnWarn">Horário livre das 05h às 00h. O sistema ainda impede choque com outro atendimento.</div>
@@ -554,7 +589,11 @@ async function loadRefs(){
   CLIENT_STATS=(cli.data||[]).slice().sort((a,b)=>String(b.last_visit||'').localeCompare(String(a.last_visit||'')));
   CLIENTS=CLIENT_STATS.map(c=>({name:c.name,phone:c.phone}));
   el('knownClients').innerHTML=CLIENTS.map(c=>`<option value="${c.name.replace(/"/g,'&quot;')}">${c.phone}</option>`).join('');
-  el('qnService').innerHTML=SVCS.map(s2=>`<option value="${s2.id}">${s2.name} · ${s2.duration_min}min</option>`).join('');
+  el('qnSvcList').innerHTML=SVCS.map((s2,i)=>`<label class="svcrow">
+      <input type="checkbox" class="svcChk" value="${s2.id}" data-dur="${s2.duration_min}" data-preco="${s2.price_cents}" ${i===0?'checked':''} onchange="qnSvcMudou()">
+      <span class="nm">${s2.name}<span>${s2.duration_min} min</span></span>
+      <span class="pr">${fmt(s2.price_cents/100)}</span></label>`).join('');
+  qnSvcMudou();
   const bOpts=BARBERS.map(b2=>`<option value="${b2.id}">${b2.name}</option>`).join('');
   el('qnBarber').innerHTML=bOpts; el('qbBarber').innerHTML=bOpts;
   if(ACCESS.role==='barber'&&ACCESS.barber_id){
@@ -918,12 +957,34 @@ async function reloadClients(){
 const LABEL={confirmed:'Confirmado',done:'Concluído',no_show:'Faltou',cancelled:'Cancelado'};
 function renderDates(){
   let h='';
-  for(let off=-2;off<=10;off++){const d=dateFor(off),sun=d.getDay()===0,man=manualClosed(d),cl=sun||man;
+  const ini = sel<=2 ? -2 : sel-3, fim = ini+13;
+  const dSel=dateFor(sel);
+  el('monLab').textContent = MON_L[dSel.getMonth()].toUpperCase()+' '+dSel.getFullYear();
+  el('btnHoje').style.display = sel===0 ? 'none' : 'flex';
+  for(let off=ini;off<=fim;off++){const d=dateFor(off),sun=d.getDay()===0,man=manualClosed(d),cl=sun||man;
     h+=`<button class="day ${off===sel?'sel':''} ${cl?'closed':''}" onclick="pick(${off})">
       <div class="dow">${off===0?'HOJE':DOW[d.getDay()]}</div><div class="num">${d.getDate()}</div>${man?'<div class="pip lock"></div>':(cl?'':'<div class="pip"></div>')}</button>`;}
   el('dates').innerHTML=h;
 }
 function pick(o){sel=o;renderDates();renderAgenda();qRefresh();}
+function voltarHoje(){ pick(0); }
+function abrirCalendario(){
+  const inp=el('jumpDate');
+  const d=dateFor(sel);
+  inp.value=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
+  inp.min=`${hoje.getFullYear()}-${pad(hoje.getMonth()+1)}-${pad(hoje.getDate()-0)}`;
+  if(inp.showPicker){ try{ inp.showPicker(); return; }catch(e){} }
+  inp.style.position='static'; inp.style.opacity='1'; inp.style.width='auto';
+  inp.style.height='auto'; inp.style.pointerEvents='auto'; inp.focus(); inp.click();
+}
+function pularPara(v){
+  if(!v) return;
+  const [a,m,dd]=v.split('-').map(Number);
+  const alvo=new Date(a,m-1,dd); alvo.setHours(0,0,0,0);
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
+  pick(Math.round((alvo-hoje)/86400000));
+}
 function setFilter(f){filter=f;document.querySelectorAll('#chips .chip-f').forEach(c=>c.classList.toggle('on',c.dataset.f===f));paintAgenda();}
 async function setStatus(id,st){
   const {error}=await sb.from('appointments').update({status:st}).eq('id',id);
@@ -1177,11 +1238,20 @@ async function qnReloadSlots(){
   const d=dateFor(sel);
   el('qnTime').innerHTML='<option value="">Carregando…</option>';
   if(closureReason(d)){ el('qnTime').innerHTML='<option value="">Dia fechado</option>'; return; }
-  const bid=el('qnBarber').value, sid=el('qnService').value;
+  const bid=el('qnBarber').value, sid=(qnServicosSel()[0]||{}).value;
   if(!bid||!sid){ el('qnTime').innerHTML='<option value="">—</option>'; return; }
   const {data,error}=await sb.rpc('get_available_slots',{p_barber_id:bid,p_service_id:sid,p_date:dateKey(d)});
   if(error||!data||!data.length){ el('qnTime').innerHTML='<option value="">Sem horários livres</option>'; return; }
   el('qnTime').innerHTML=data.map(r=>`<option value="${r.slot}">${hhmm(r.slot)}</option>`).join('');
+}
+function qnServicosSel(){ return [...document.querySelectorAll('.svcChk:checked')]; }
+function qnSvcMudou(){
+  const sel2=qnServicosSel();
+  const dur=sel2.reduce((a,c)=>a+ +c.dataset.dur,0);
+  const preco=sel2.reduce((a,c)=>a+ +c.dataset.preco,0);
+  el('qnTotDur').textContent = sel2.length ? (sel2.length>1?sel2.length+' serviços · ':'')+dur+' min no total' : 'nenhum serviço marcado';
+  el('qnTotPreco').textContent = sel2.length ? fmt(preco/100) : '';
+  if(!el('qnOff').checked) qnReloadSlots();
 }
 function qnFillPhone(){
   const c=CLIENTS.find(x=>x.name===el('qnName').value);
@@ -1211,9 +1281,26 @@ async function qnBook(){
     if(!iso){alert('Escolha um horário.');return;}
   }
   if(!name||phone.length<8){alert('Preencha nome e WhatsApp do cliente.');return;}
-  const {error}= off
-    ? await sb.rpc('book_appointment_staff',{p_barber_id:el('qnBarber').value,p_service_id:el('qnService').value,p_start:iso,p_customer_name:name,p_customer_phone:phone})
-    : await sb.rpc('book_appointment',{p_barber_id:el('qnBarber').value,p_service_id:el('qnService').value,p_start:iso,p_customer_name:name,p_customer_phone:phone});
+  const ids=qnServicosSel().map(c=>c.value);
+  if(!ids.length){alert('Marque pelo menos um serviço.');return;}
+  const rep=+el('qnRepeat').value||1;
+  let error=null;
+  if(ids.length>1 || rep>1 || off){
+    const r=await sb.rpc('book_staff_multi',{p_barber_id:el('qnBarber').value,p_service_ids:ids,
+      p_start:iso,p_customer_name:name,p_customer_phone:phone,p_repeat_weeks:rep});
+    error=r.error;
+    if(!error){
+      const d=r.data||{}; const pul=(d.pulados||[]);
+      if(rep>1 || pul.length){
+        alert(`${d.criados||0} atendimento(s) marcado(s).` +
+              (pul.length?`\n\nPulei ${pul.length} data(s) por conflito ou dia fechado:\n${pul.join(', ')}`:''));
+      }
+    }
+  } else {
+    const r=await sb.rpc('book_appointment',{p_barber_id:el('qnBarber').value,p_service_id:ids[0],
+      p_start:iso,p_customer_name:name,p_customer_phone:phone});
+    error=r.error;
+  }
   if(error){
     const m=error.message||'';
     alert(/ocupado|já tem atendimento/i.test(m) ? 'Esse barbeiro já tem atendimento nesse horário.'
@@ -1226,7 +1313,7 @@ async function qnBook(){
   if(!CLIENTS.find(x=>x.name===name)){CLIENTS.unshift({name,phone});
     el('knownClients').innerHTML=CLIENTS.map(c=>`<option value="${c.name.replace(/"/g,'&quot;')}">${c.phone}</option>`).join('');}
   el('qnName').value='';el('qnPhone').value='';
-  el('qnOff').checked=false; qnToggleOff();
+  el('qnOff').checked=false; el('qnRepeat').value='1'; qnToggleOff();
   toggleQ('qNew');renderAgenda();reloadClients();
 }
 async function qbReloadSlots(){
