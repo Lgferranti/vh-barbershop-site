@@ -199,7 +199,11 @@
   .datebar button{border:1px solid var(--line);background:var(--panel);color:var(--gold-lt);border-radius:9px;
     padding:7px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px}
   .datebar button:hover{border-color:var(--gold)}
-  .datebar input[type=date]{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+  .datebar .pickwrap{position:relative;display:inline-flex}
+  .datebar .pickwrap input[type=date]{position:absolute;inset:0;width:100%;height:100%;opacity:0;
+    border:none;padding:0;margin:0;background:transparent;cursor:pointer;z-index:2;
+    -webkit-appearance:none;appearance:none;font-size:16px}
+  .datebar .pickwrap input[type=date]::-webkit-calendar-picker-indicator{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
   .svclist{max-height:186px;overflow-y:auto;border:1px solid var(--line);border-radius:11px;padding:2px 12px;background:var(--bg)}
   .svcrow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-soft)}
   .svcrow:last-child{border-bottom:none}
@@ -372,11 +376,13 @@
       <div class="datebar">
         <span class="mon" id="monLab"></span>
         <button onclick="voltarHoje()" id="btnHoje" style="display:none">Hoje</button>
-        <button onclick="abrirCalendario()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
-          Escolher data
-        </button>
-        <input type="date" id="jumpDate" onchange="pularPara(this.value)">
+        <span class="pickwrap">
+          <button type="button" onclick="abrirCalendario()" tabindex="-1">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
+            Escolher data
+          </button>
+          <input type="date" id="jumpDate" aria-label="Escolher data" onfocus="prepararCalendario()" onclick="prepararCalendario()" onchange="pularPara(this.value)">
+        </span>
       </div>
       <div class="dates" id="dates"></div>
       <div class="stats">
@@ -993,15 +999,20 @@ function renderDates(){
 }
 function pick(o){sel=o;renderDates();renderAgenda();qRefresh();}
 function voltarHoje(){ pick(0); }
-function abrirCalendario(){
-  const inp=el('jumpDate');
+function prepararCalendario(){
+  const inp=el('jumpDate'); if(!inp) return;
   const d=dateFor(sel);
-  inp.value=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  if(!inp.value) inp.value=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   const hoje=new Date(); hoje.setHours(0,0,0,0);
-  inp.min=`${hoje.getFullYear()}-${pad(hoje.getMonth()+1)}-${pad(hoje.getDate()-0)}`;
+  inp.min=`${hoje.getFullYear()}-${pad(hoje.getMonth()+1)}-${pad(hoje.getDate())}`;
+  const lim=new Date(hoje); lim.setFullYear(lim.getFullYear()+1);
+  inp.max=`${lim.getFullYear()}-${pad(lim.getMonth()+1)}-${pad(lim.getDate())}`;
+}
+function abrirCalendario(){
+  const inp=el('jumpDate'); if(!inp) return;
+  prepararCalendario();
   if(inp.showPicker){ try{ inp.showPicker(); return; }catch(e){} }
-  inp.style.position='static'; inp.style.opacity='1'; inp.style.width='auto';
-  inp.style.height='auto'; inp.style.pointerEvents='auto'; inp.focus(); inp.click();
+  inp.focus(); inp.click();
 }
 function pularPara(v){
   if(!v) return;
