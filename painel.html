@@ -266,6 +266,10 @@
     border:1px dashed var(--line-soft)}
   .tl-livre:hover{border-color:var(--gold-deep);background:rgba(201,162,75,.05)}
   .appt .acts2{display:flex;gap:8px;margin-top:8px}
+  .appt .undo{display:flex;margin-top:8px}
+  .appt .undo button{flex:1;border:1px solid var(--gold-deep);background:rgba(201,162,75,.07);color:var(--gold-lt);
+    border-radius:10px;padding:10px;font-size:12.5px;font-weight:800;cursor:pointer;font-family:inherit;transition:.15s}
+  .appt .undo button:hover{background:rgba(201,162,75,.15)}
   .appt .acts2 button{flex:1;border:1px solid var(--line);background:transparent;color:var(--muted);
     border-radius:10px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
   .appt .acts2 button:hover{border-color:var(--gold);color:var(--gold-lt)}
@@ -1289,11 +1293,28 @@ function abrirBloco(id){
       <button onclick="abrirRemarcar('${x.id}')">Mudar horário</button>
       <button onclick="abrirValor('${x.id}')">Alterar valor</button></div>
     <div id="edt-${x.id}"></div>`:''}
+    ${!acts?`<div class="acts2" style="margin-top:14px">
+      <button onclick="voltarPendente('${x.id}');closeFicha()">↩︎ Voltar para pendente</button></div>`:''}
     <div class="fi-acts" style="margin-top:14px">
       <a class="fi-wpp" href="${waLink(x.customer_phone)}" target="_blank" rel="noopener">WhatsApp</a>
       <button class="fi-close" onclick="closeFicha()">Fechar</button>
     </div>`;
   el('ficha').classList.add('on');
+}
+
+async function voltarPendente(id){
+  const x=achaAppt(id);
+  const era=x?LABEL[x.status]:'—';
+  if(!confirm(`Voltar este atendimento de "${era}" para pendente?`)) return;
+  const {error}=await sb.from('appointments').update({status:'confirmed'}).eq('id',id);
+  if(error){
+    alert(/exclus|overlap|conflit/i.test(error.message||'')
+      ? 'Não dá para reabrir: já existe outro atendimento nesse horário.'
+      : 'Não foi possível voltar para pendente.');
+    return;
+  }
+  if(x) x.status='confirmed';
+  paintAgenda(); reloadClients();
 }
 
 function paintAgenda(){
@@ -1325,7 +1346,8 @@ function paintAgenda(){
       <div class="acts2">
         <button onclick="abrirRemarcar('${x.id}')">Mudar horário</button>
         <button onclick="abrirValor('${x.id}')">Alterar valor</button></div>
-      <div id="edt-${x.id}"></div>`:''}
+      <div id="edt-${x.id}"></div>`:`<div class="undo">
+        <button onclick="voltarPendente('${x.id}')">↩︎ Voltar para pendente</button></div>`}
     </div>`};});
   blocks.forEach(t=>{
     const B=SLUG[t.barber_id]||{name:'—',color:'var(--gold)'};
