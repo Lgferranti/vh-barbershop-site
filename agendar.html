@@ -437,10 +437,23 @@ function closureReason(d){
   const c=CLOSURES.find(x=>x.date===dateKey(d));
   return c?(c.reason||'Fechado'):null;
 }
+/* janela de atendimento do dia (do primeiro abrir ao último fechar) */
+function janelaDoDia(d){
+  const wd=d.getDay();
+  const ivs=BH.filter(h=>h.weekday===wd).sort((x,y)=>String(x.opens).localeCompare(String(y.opens)));
+  if(!ivs.length) return null;
+  const p=t=>{const[h,m]=String(t).split(':').map(Number);const x=new Date(d);x.setHours(h,m||0,0,0);return x;};
+  return [p(ivs[0].opens), p(ivs[ivs.length-1].closes)];
+}
+/* só é "dia indisponível" quando a folga cobre TODO o expediente.
+   Bloqueio de 30min/1h é parcial: some só daquele horário (o servidor cuida disso). */
 function barberOffByRow(b,d){
+  const jan=janelaDoDia(d);
   const dayStart=new Date(d); dayStart.setHours(0,0,0,0);
   const dayEnd=new Date(d); dayEnd.setHours(23,59,59,999);
-  const t=TIMEOFF.find(x=>x.barber_id===b.id && new Date(x.starts_at)<=dayEnd && new Date(x.ends_at)>=dayStart);
+  const ini=jan?jan[0]:dayStart, fim=jan?jan[1]:dayEnd;
+  const t=TIMEOFF.find(x=>x.barber_id===b.id
+    && new Date(x.starts_at)<=ini && new Date(x.ends_at)>=fim);
   return t?(t.reason||'Indisponível'):null;
 }
 function dayReasonFor(d){
