@@ -496,6 +496,8 @@
           <div class="svclist" id="qnSvcList"></div>
           <div class="svctot"><span id="qnTotDur">—</span><b id="qnTotPreco"></b></div>
         </div>
+        <div class="qrow"><label>Duração <span style="text-transform:none;letter-spacing:0;color:var(--muted-2);font-weight:400">(minutos — deixe como está para usar o padrão)</span></label>
+          <input id="qnDur" type="number" inputmode="numeric" min="5" max="480" step="5" placeholder="40" oninput="this.dataset.tocado=1"></div>
         <div class="qrow"><label>Repetir</label><select id="qnRepeat">
           <option value="1">Só nesta data</option>
           <option value="4">Toda semana · 4 semanas</option>
@@ -1316,6 +1318,33 @@ function pctDe(x){
 }
 const comissaoDe = x => valorDe(x) * pctDe(x) / 100;
 
+function abrirDuracao(id){
+  const x=achaAppt(id); if(!x) return;
+  const atual=Math.round((new Date(x.ends_at)-new Date(x.starts_at))/60000);
+  el('edt-'+id).innerHTML=`<div class="edt">
+    <div class="lab">Duração do atendimento</div>
+    <div class="hint">Começa às ${hhmm(x.starts_at)}. Tabela do serviço: ${x.services.duration_min} min.
+      Ajuste para o tempo que você realmente leva.</div>
+    <div class="lin"><input type="number" id="duM-${id}" inputmode="numeric" min="5" max="480" step="5" value="${atual}"></div>
+    <div class="bts">
+      <button class="ok" onclick="salvarDuracao('${id}')">Salvar</button>
+      <button class="no" onclick="fecharEdt('${id}')">Cancelar</button>
+    </div></div>`;
+}
+async function salvarDuracao(id){
+  const v=(el('duM-'+id).value||'').trim();
+  const n=Math.round(Number(v));
+  if(!isFinite(n)||n<5||n>480){ alert('Digite de 5 a 480 minutos.'); return; }
+  let {error}=await sb.rpc('set_appointment_duration',{p_id:id,p_min:n,p_force:false});
+  if(error && /bate com outro/i.test(error.message||'')){
+    if(confirm('Esse tempo bate com outro atendimento. Aplicar mesmo assim (vão ficar sobrepostos)?')){
+      ({error}=await sb.rpc('set_appointment_duration',{p_id:id,p_min:n,p_force:true}));
+    } else return;
+  }
+  if(error){ alert('Não foi possível alterar a duração.'); return; }
+  fecharEdt(id);
+  await renderAgenda();
+}
 function abrirComissao(id){
   const x=achaAppt(id); if(!x) return;
   const b=BARBERS.find(y=>y.id===x.barber_id)||{name:'—',commission_pct:100};
@@ -1403,7 +1432,10 @@ function paintTimeline(){
     });
     bl.forEach(t=>{
       const a=minutosDoDia(t.starts_at), z=minutosDoDia(t.ends_at);
-      inner+=`<div class="tl-bloq" style="top:${y(a)}px;height:${Math.max(18,(z-a)*TL_PX-2)}px">${t.reason||'Bloqueado'}</div>`;
+      const podeRm=ACCESS.role==='admin'||t.barber_id===ACCESS.barber_id;
+      inner+=`<div class="tl-bloq" style="top:${y(a)}px;height:${Math.max(18,(z-a)*TL_PX-2)}px;cursor:${podeRm?'pointer':'default'}"
+        ${podeRm?`onclick="pedirDesbloqueio('${t.id}','${hhmm(t.starts_at)}','${hhmm(t.ends_at)}')"`:''}
+        title="${podeRm?'Tocar para desbloquear':''}">🔒 ${t.reason||'Bloqueado'}</div>`;
     });
     meus.forEach(x=>{
       const a=minutosDoDia(x.starts_at), z=minutosDoDia(x.ends_at);
@@ -1450,7 +1482,8 @@ function abrirBloco(id){
     <div class="acts2" style="margin-top:9px">
       <button onclick="abrirRemarcar('${x.id}')">Mudar horário</button>
       <button onclick="abrirValor('${x.id}')">Alterar valor</button>
-      <button onclick="abrirComissao('${x.id}')">Comissão</button></div>
+      <button onclick="abrirComissao('${x.id}')">Comissão</button>
+      <button onclick="abrirDuracao('${x.id}')">Duração</button></div>
     <div id="edt-${x.id}"></div>`:''}
     ${!acts?`<div class="acts2" style="margin-top:14px">
       <button onclick="voltarPendente('${x.id}');closeFicha()">↩︎ Voltar para pendente</button></div>`:''}
@@ -1505,7 +1538,8 @@ function paintAgenda(){
       <div class="acts2">
         <button onclick="abrirRemarcar('${x.id}')">Mudar horário</button>
         <button onclick="abrirValor('${x.id}')">Alterar valor</button>
-        <button onclick="abrirComissao('${x.id}')">Comissão</button></div>
+        <button onclick="abrirComissao('${x.id}')">Comissão</button>
+        <button onclick="abrirDuracao('${x.id}')">Duração</button></div>
       <div id="edt-${x.id}"></div>`:`<div class="undo">
         <button onclick="voltarPendente('${x.id}')">↩︎ Voltar para pendente</button></div>`}
     </div>`};});
@@ -1732,6 +1766,8 @@ function qnSvcMudou(){
   const dur=sel2.reduce((a,c)=>a+ +c.dataset.dur,0);
   const preco=sel2.reduce((a,c)=>a+ +c.dataset.preco,0);
   el('qnTotDur').textContent = sel2.length ? (sel2.length>1?sel2.length+' serviços · ':'')+dur+' min no total' : 'nenhum serviço marcado';
+  const dcamp=el('qnDur');
+  if(dcamp){ dcamp.placeholder=String(dur||40); if(!dcamp.dataset.tocado) dcamp.value=''; }
   el('qnTotPreco').textContent = sel2.length ? fmt(preco/100) : '';
   if(!el('qnOff').checked) qnReloadSlots();
 }
@@ -1776,11 +1812,14 @@ async function qnBook(){
   if(!ids.length){alert('Marque pelo menos um serviço.');return;}
   const rep=+el('qnRepeat').value||1;
   let error=null;
+  const durEscolhida=()=>{ const v=(el('qnDur').value||'').trim(); if(v==='') return null;
+    const n=Math.round(Number(v)); return (isFinite(n)&&n>=5&&n<=480)?n:null; };
   const forcar=el('qnForce').checked;
   if(forcar && !confirm('Encaixar por cima de outro atendimento?\n\nOs dois vão aparecer no mesmo horário na agenda.')) return;
-  if(ids.length>1 || rep>1 || off || forcar){
+  if(ids.length>1 || rep>1 || off || forcar || durEscolhida()!=null){
     const r=await sb.rpc('book_staff_multi',{p_barber_id:el('qnBarber').value,p_service_ids:ids,
-      p_start:iso,p_customer_name:name,p_customer_phone:phone,p_repeat_weeks:rep,p_force:forcar});
+      p_start:iso,p_customer_name:name,p_customer_phone:phone,p_repeat_weeks:rep,p_force:forcar,
+      p_duration_min:durEscolhida()});
     error=r.error;
     if(!error){
       const d=r.data||{}; const pul=(d.pulados||[]);
@@ -1806,7 +1845,8 @@ async function qnBook(){
   if(!CLIENTS.find(x=>x.name===name)){CLIENTS.unshift({name,phone});
     el('knownClients').innerHTML=CLIENTS.map(c=>`<option value="${c.name.replace(/"/g,'&quot;')}">${c.phone}</option>`).join('');}
   el('qnName').value='';el('qnPhone').value='';
-  el('qnOff').checked=false; el('qnForce').checked=false; el('qnRepeat').value='1'; qnToggleOff();
+  el('qnOff').checked=false; el('qnForce').checked=false; el('qnRepeat').value='1';
+  el('qnDur').value=''; delete el('qnDur').dataset.tocado; qnToggleOff();
   toggleQ('qNew');renderAgenda();reloadClients();
 }
 async function qbReloadSlots(){
@@ -1828,6 +1868,10 @@ async function qbBlock(){
   if(error){alert('Não foi possível bloquear.');return;}
   TIMEOFF.push(data);el('qbReason').value='';
   toggleQ('qBlock');paintAgenda();qbReloadSlots();
+}
+function pedirDesbloqueio(id,ini,fim){
+  if(!confirm(`Desbloquear o horário ${ini} – ${fim}?`)) return;
+  removeBlock(id);
 }
 async function removeBlock(id){
   const {error}=await sb.from('time_off').delete().eq('id',id);
