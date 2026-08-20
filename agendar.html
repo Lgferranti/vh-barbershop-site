@@ -312,7 +312,8 @@
 
   <div class="screen" id="screen" style="display:none">
     <div class="view" id="v1">
-      <p class="section-note">Toque no serviço que você quer fazer hoje.</p>
+      <p class="section-note" id="svcDica">Toque no serviço que você quer fazer. Pode escolher mais de um — a gente reserva o tempo de todos em seguida.</p>
+      <div class="svc-resumo" id="svcResumo"></div>
       <div id="services"></div>
     </div>
     <div class="view" id="v2">
@@ -384,7 +385,7 @@ const MON=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','de
 const MON_L=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 const TITLES = ['','Serviço','Profissional','Data e horário','Seus dados','Confirmação'];
 
-const state = {service:null, barber:null, date:null, slotIso:null, time:null, name:'', phone:'', token:null};
+const state = {service:null, services:[], barber:null, slotBarber:null, date:null, slotIso:null, time:null, name:'', phone:'', token:null};
 const MYKEY='vh_tok';
 let MANAGE=null, RESCHED=null;
 let step = 0;
@@ -481,8 +482,8 @@ function go(n){
   el('screen').scrollTop=0;
   const showFoot = n>=1 && n<=4;
   el('foot').classList.toggle('hide', !showFoot);
-  el('priceTag').style.display = (state.service && n<=4) ? 'flex' : 'none';
-  if(state.service) el('footPrice').innerHTML = price(state.service) + (n===4 ? `<small> a pagar na barbearia</small>` : ``);
+  el('priceTag').style.display = (state.services.length && n<=4) ? 'flex' : 'none';
+  if(state.services.length) el('footPrice').innerHTML = 'R$ '+(precoTotal()/100).toLocaleString('pt-BR') + (n===4 ? `<small> a pagar na barbearia</small>` : ``);
   const labels={1:'Escolher profissional',2:'Ver horários',3:'Continuar',4:'Reservar horário'};
   el('next').innerHTML = (RESCHED && n===3) ? 'Confirmar novo horário <span class="arr">→</span>' : `${labels[n]||'Continuar'} <span class="arr">→</span>`;
   if(n===3) ensureDates();
@@ -498,7 +499,7 @@ async function next(){
 function back(){ if(RESCHED){ const t=RESCHED; RESCHED=null; openManage(t); return; } if(step>1) go(step-1); }
 function updateGate(){
   let ok=false;
-  if(step===1) ok=!!state.service;
+  if(step===1) ok=state.services.length>0;
   else if(step===2) ok=!!state.barber;
   else if(step===3) ok=!!(state.date && state.slotIso);
   else if(step===4) ok=!!(state.name.trim() && state.phone.trim().length>=8);
@@ -509,22 +510,50 @@ function checkForm(){ state.name=el('nm').value; state.phone=el('ph').value; upd
 /* ---------- render ---------- */
 function renderServices(){
   const cats=[...new Set(SERVICES.map(s=>s.category))];
+  const dica=el('svcDica'); if(dica) dica.style.display='block';
   el('services').innerHTML = cats.map(cat=>{
     const items=SERVICES.filter(s=>s.category===cat);
     return `<div class="cat-head">${cat}</div>` + items.map(s=>`
       <button class="opt" data-id="${s.id}" onclick="pickService('${s.id}')">
         <span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[icoFor(s)]}</svg></span>
         <span class="body"><span class="t">${s.name}</span><span class="s">${s.description||''}</span></span>
-        <span class="meta"><span class="price">${price(s)}</span><span class="dur">${fmtDur(s.duration_min)}</span></span>
+        <span class="meta"><span class="price">${price(s)}</span><span class="dur">${fmtDur(s.duration_min)}</span><span class="ordem"></span></span>
       </button>`).join('');
   }).join('');
 }
 function pickService(id){
-  state.service=SERVICES.find(s=>s.id===id);
-  document.querySelectorAll('#services .opt').forEach(o=>o.classList.toggle('sel',o.dataset.id===id));
-  el('priceTag').style.display='flex';
-  el('footPrice').innerHTML=price(state.service);
+  const j=state.services.findIndex(x=>x.id===id);
+  if(j>=0) state.services.splice(j,1);
+  else{
+    if(state.services.length>=4){ alert('Você pode escolher até 4 serviços por horário.'); return; }
+    state.services.push(SERVICES.find(s=>s.id===id));
+  }
+  state.service=state.services[0]||null;          // compatibilidade
+  // trocar de serviço invalida o horário já escolhido
+  state.slotIso=null; state.time=null; slotCache.clear(); lastDatesBarber=null;
+  syncServices();
   updateGate();
+}
+function durTotal(){ return state.services.reduce((a,s)=>a+s.duration_min,0); }
+function precoTotal(){ return state.services.reduce((a,s)=>a+s.price_cents,0); }
+function syncServices(){
+  const ids=state.services.map(x=>x.id);
+  document.querySelectorAll('#services .opt').forEach(o=>{
+    const on=ids.includes(o.dataset.id);
+    o.classList.toggle('sel',on);
+    const n=ids.indexOf(o.dataset.id);
+    const tag=o.querySelector('.ordem');
+    if(tag) tag.textContent = on && ids.length>1 ? (n+1)+'º' : '';
+  });
+  const box=el('svcResumo');
+  if(box){
+    box.style.display = state.services.length>1 ? 'flex' : 'none';
+    box.innerHTML = state.services.length>1
+      ? `<span>${state.services.length} serviços · ${fmtDur(durTotal())}</span><b>R$ ${(precoTotal()/100).toLocaleString('pt-BR')}</b>`
+      : '';
+  }
+  el('priceTag').style.display = state.services.length ? 'flex' : 'none';
+  if(state.services.length) el('footPrice').innerHTML = 'R$ '+(precoTotal()/100).toLocaleString('pt-BR');
 }
 function renderBarbers(){
   const list=[...BARBERS.map(b=>({...b, initials:b.name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()})),
@@ -594,7 +623,7 @@ async function renderSlots(i){
       <b>${r.kind==='shop'?'Fechado':'Indisponível'}</b><span>${r.txt}</span><small>Escolha outro dia disponível acima.</small></div>`;
     return;
   }
-  const grid=gridForDay(d,state.service.duration_min);
+  const grid=gridForDay(d,durTotal());
   if(!grid.length){
     el('slotArea').style.opacity='1';
     el('slotArea').innerHTML=`<div class="closed-note"><b>Sem horários</b><span>Não atendemos nesse dia.</span><small>Escolha outro dia acima.</small></div>`;
@@ -602,7 +631,7 @@ async function renderSlots(i){
   }
   const dk=dateKey(d);
   const targets = state.barber.any ? BARBERS.filter(b=>!barberOffByRow(b,d)) : [state.barber];
-  const ck = targets.map(b=>b.id).join(',')+'|'+state.service.id+'|'+dk;
+  const ck = targets.map(b=>b.id).join(',')+'|'+state.services.map(x=>x.id).join('-')+'|'+dk;
   let set; const cached=slotCache.get(ck);
   if(cached && Date.now()-cached.at<45000){ set=cached.set; }
   else{
@@ -610,17 +639,18 @@ async function renderSlots(i){
       el('slotArea').innerHTML=`<div class="closed-note" style="border-style:solid"><b>Carregando horários…</b></div>`;
     else el('slotArea').style.opacity='.45';
     const results = await Promise.all(targets.map(b=>
-      sb.rpc('get_available_slots',{p_barber_id:b.id,p_service_id:state.service.id,p_date:dk})
+      sb.rpc('get_available_slots_dur',{p_barber_id:b.id,p_total_min:durTotal(),p_date:dk})
     ));
     if(myReq!==slotReq) return;
     set=new Map();
-    results.forEach(res=>{ (res.data||[]).forEach(row=>{ const t=hhmm(row.slot); if(!set.has(t)) set.set(t,row.slot); }); });
+    results.forEach((res,idx)=>{ (res.data||[]).forEach(row=>{ const t=hhmm(row.slot);
+      if(!set.has(t)) set.set(t,{iso:row.slot, bid:targets[idx].id}); }); });
     slotCache.set(ck,{at:Date.now(),set});
   }
   if(myReq!==slotReq) return;
   el('slotArea').style.opacity='1';
   window.__slotmap=set;
-  if(state.time && set.has(state.time)) state.slotIso=set.get(state.time);
+  if(state.time && set.has(state.time)){ const v=set.get(state.time); state.slotIso=v.iso; state.slotBarber=v.bid; }
   else { state.time=null; state.slotIso=null; }
   if(!set.size && grid.every(t=>{const [h,m]=t.split(':').map(Number);const x=new Date(d);x.setHours(h,m,0,0);return x<new Date();})){
     el('slotArea').innerHTML=`<div class="closed-note"><b>Sem horários</b><span>Os horários de hoje já passaram.</span><small>Escolha outro dia acima.</small></div>`;
@@ -636,7 +666,8 @@ async function renderSlots(i){
   updateGate();
 }
 function pickTime(t){
-  state.time=t; state.slotIso=window.__slotmap.get(t);
+  const v=window.__slotmap.get(t)||{};
+  state.time=t; state.slotIso=v.iso; state.slotBarber=v.bid;
   document.querySelectorAll('.slot').forEach(s=>s.classList.toggle('sel',s.dataset.t===t));
   updateGate();
 }
@@ -644,19 +675,19 @@ function pickTime(t){
 function buildRecap(){
   const s=state;
   el('recap').innerHTML=`
-    <div class="row"><span class="k">Serviço</span><span class="v">${s.service.name}<small>${fmtDur(s.service.duration_min)}</small></span></div>
+    <div class="row"><span class="k">${s.services.length>1?'Serviços':'Serviço'}</span><span class="v">${s.services.map(x=>x.name).join(' + ')}<small>${fmtDur(durTotal())}</small></span></div>
     <div class="row"><span class="k">Barbeiro</span><span class="v">${s.barber.any?'Sem preferência':s.barber.name}</span></div>
     <div class="row"><span class="k">Quando</span><span class="v">${fmtDate(s.date)}<small>${s.time}</small></span></div>
-    <div class="row"><span class="k">Valor</span><span class="v">${price(s.service)}<small>na barbearia</small></span></div>`;
+    <div class="row"><span class="k">Valor</span><span class="v">R$ ${(precoTotal()/100).toLocaleString('pt-BR')}<small>na barbearia</small></span></div>`;
 }
 
 /* ---------- reservar de verdade ---------- */
 async function doBook(){
   el('next').disabled=true;
   el('next').innerHTML='Reservando…';
-  const {data,error} = await sb.rpc('book_appointment',{
-    p_barber_id: state.barber.any? null : state.barber.id,
-    p_service_id: state.service.id,
+  const {data,error} = await sb.rpc('book_appointment_multi',{
+    p_barber_id: state.slotBarber || (state.barber && !state.barber.any ? state.barber.id : null),
+    p_service_ids: state.services.map(x=>x.id),
     p_start: state.slotIso,
     p_customer_name: state.name,
     p_customer_phone: state.phone
@@ -673,7 +704,7 @@ async function doBook(){
   slotCache.clear();
   state.token = data.manage_token;
   try{ localStorage.setItem(MYKEY, data.manage_token); }catch(e){}
-  state.bookedBarber = BARBERS.find(b=>b.id===data.barber_id)?.name || '—';
+  state.bookedBarber = BARBERS.find(b=>b.id===(state.slotBarber||(state.barber||{}).id))?.name || '—';
   buildTicket(data);
   go(5); el('foot').classList.add('hide');
 }
@@ -692,11 +723,11 @@ function buildTicket(appt){
     <div class="perf"><div class="dash"></div></div>
     <div class="tbody">
       <div class="tline"><span class="tk">Cliente</span><span class="tv">${esc(s.name)||'—'}</span></div>
-      <div class="tline"><span class="tk">Serviço</span><span class="tv">${s.service.name}<small>${fmtDur(s.service.duration_min)}</small></span></div>
+      <div class="tline"><span class="tk">${s.services.length>1?'Serviços':'Serviço'}</span><span class="tv">${s.services.map(x=>x.name).join(' + ')}<small>${fmtDur(durTotal())}</small></span></div>
       <div class="tline"><span class="tk">Barbeiro</span><span class="tv">${esc(state.bookedBarber)}</span></div>
       <div class="tline"><span class="tk">Data</span><span class="tv">${d.getDate()}/${pad(d.getMonth()+1)}<small>${DOW[d.getDay()]}</small></span></div>
       <div class="tline"><span class="tk">Horário</span><span class="tv">${s.time}</span></div>
-      <div class="ttotal"><span class="tk">Total</span><span class="tv">${price(s.service)}</span></div>
+      <div class="ttotal"><span class="tk">Total</span><span class="tv">R$ ${(precoTotal()/100).toLocaleString('pt-BR')}</span></div>
     </div>`;
 }
 
@@ -705,7 +736,7 @@ function sendWpp(){
   const msg=`Olá! Acabei de agendar pela VH Barbershop 💈
 
 `+
-    `*Serviço:* ${s.service.name}
+    `*Serviço:* ${s.services.map(x=>x.name).join(' + ')}
 `+
     `*Barbeiro:* ${state.bookedBarber}
 `+
@@ -713,7 +744,7 @@ function sendWpp(){
 `+
     `*Horário:* ${s.time}
 `+
-    `*Valor:* ${price(s.service)}
+    `*Valor:* R$ ${(precoTotal()/100).toLocaleString('pt-BR')}
 
 `+
     `*Nome:* ${s.name}` + (s.token?`\n\n🔗 Remarcar ou cancelar: ${manageUrl(s.token)}`:'');
@@ -721,7 +752,7 @@ function sendWpp(){
 }
 
 function reset(){
-  Object.assign(state,{service:null,barber:null,date:null,slotIso:null,time:null,name:'',phone:'',token:null});
+  Object.assign(state,{service:null,services:[],barber:null,slotBarber:null,date:null,slotIso:null,time:null,name:'',phone:'',token:null});
   RESCHED=null; MANAGE=null;
   el('nm').value='';el('ph').value='';
   lastDatesBarber=null; dateList=[]; slotCache.clear();
@@ -799,7 +830,7 @@ function startResched(){
   const brb=BARBERS.find(x=>x.id===MANAGE.barber_id);
   if(!svc||!brb){ alert('Não foi possível remarcar agora. Fale com a barbearia.'); return; }
   RESCHED=MANAGE.token;
-  state.service=svc; state.barber=brb;
+  state.service=svc; state.services=[svc]; state.barber=brb;
   state.date=null; state.slotIso=null; state.time=null;
   lastDatesBarber=null; dateList=[]; slotCache.clear();
   el('manage').classList.remove('active');
