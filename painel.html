@@ -1220,7 +1220,7 @@ async function renderAgenda(){
   else el('list').style.opacity='.45';
   const [a,b]=dayBounds(d);
   const {data,error}=await sb.from('appointments')
-    .select('id,starts_at,ends_at,status,customer_name,customer_phone,barber_id,price_cents_override,forced,services(name,price_cents,duration_min)')
+    .select('id,starts_at,ends_at,status,customer_name,customer_phone,barber_id,service_id,price_cents_override,commission_pct,forced,services(name,price_cents,duration_min)')
     .gte('starts_at',a).lte('starts_at',b).order('starts_at');
   if(myReq!==agReq) return;                    // resposta antiga: descarta
   el('list').style.opacity='1';
@@ -1318,6 +1318,40 @@ function pctDe(x){
 }
 const comissaoDe = x => valorDe(x) * pctDe(x) / 100;
 
+function abrirServico(id){
+  const x=achaAppt(id); if(!x) return;
+  const opts=SVCS.map(s=>`<option value="${s.id}" ${s.id===x.service_id?'selected':''}>${s.name} · ${s.duration_min}min · ${fmt(s.price_cents/100)}</option>`).join('');
+  el('edt-'+id).innerHTML=`<div class="edt">
+    <div class="lab">Serviço do atendimento</div>
+    <div class="hint">Hoje: <b style="color:var(--gold-lt)">${x.services.name}</b>, ${hhmm(x.starts_at)}–${hhmm(x.ends_at)}.
+      <br><b>Trocar</b> substitui o serviço. <b>Adicionar</b> emenda um novo logo em seguida (cliente pediu mais na cadeira).</div>
+    <div class="qrow"><label>Serviço</label><select id="svS-${id}">${opts}</select></div>
+    <div class="bts">
+      <button class="ok" onclick="trocarServico('${id}')">Trocar</button>
+      <button class="ok" onclick="adicionarServico('${id}')">Adicionar</button>
+      <button class="no" onclick="fecharEdt('${id}')">Fechar</button>
+    </div></div>`;
+}
+async function trocarServico(id){
+  const sid=el('svS-'+id).value; if(!sid) return;
+  let {error}=await sb.rpc('set_appointment_service',{p_id:id,p_service_id:sid,p_force:false});
+  if(error && /bate com outro/i.test(error.message||'')){
+    if(!confirm('O tempo desse serviço bate com o próximo atendimento.\n\nTrocar mesmo assim (vão ficar sobrepostos)?')) return;
+    ({error}=await sb.rpc('set_appointment_service',{p_id:id,p_service_id:sid,p_force:true}));
+  }
+  if(error){ alert('Não foi possível trocar o serviço.'); return; }
+  fecharEdt(id); await renderAgenda(); reloadClients();
+}
+async function adicionarServico(id){
+  const sid=el('svS-'+id).value; if(!sid) return;
+  let {error}=await sb.rpc('add_service_to_appointment',{p_id:id,p_service_id:sid,p_force:false});
+  if(error && /(não cabe|bloqueado)/i.test(error.message||'')){
+    if(!confirm('Não cabe no horário seguinte (já tem atendimento ou bloqueio).\n\nAdicionar mesmo assim?')) return;
+    ({error}=await sb.rpc('add_service_to_appointment',{p_id:id,p_service_id:sid,p_force:true}));
+  }
+  if(error){ alert('Não foi possível adicionar o serviço.'); return; }
+  fecharEdt(id); await renderAgenda(); reloadClients();
+}
 function abrirDuracao(id){
   const x=achaAppt(id); if(!x) return;
   const atual=Math.round((new Date(x.ends_at)-new Date(x.starts_at))/60000);
@@ -1483,7 +1517,8 @@ function abrirBloco(id){
       <button onclick="abrirRemarcar('${x.id}')">Mudar horário</button>
       <button onclick="abrirValor('${x.id}')">Alterar valor</button>
       <button onclick="abrirComissao('${x.id}')">Comissão</button>
-      <button onclick="abrirDuracao('${x.id}')">Duração</button></div>
+      <button onclick="abrirDuracao('${x.id}')">Duração</button>
+      <button onclick="abrirServico('${x.id}')">Serviço</button></div>
     <div id="edt-${x.id}"></div>`:''}
     ${!acts?`<div class="acts2" style="margin-top:14px">
       <button onclick="voltarPendente('${x.id}');closeFicha()">↩︎ Voltar para pendente</button></div>`:''}
@@ -1539,7 +1574,8 @@ function paintAgenda(){
         <button onclick="abrirRemarcar('${x.id}')">Mudar horário</button>
         <button onclick="abrirValor('${x.id}')">Alterar valor</button>
         <button onclick="abrirComissao('${x.id}')">Comissão</button>
-        <button onclick="abrirDuracao('${x.id}')">Duração</button></div>
+        <button onclick="abrirDuracao('${x.id}')">Duração</button>
+        <button onclick="abrirServico('${x.id}')">Serviço</button></div>
       <div id="edt-${x.id}"></div>`:`<div class="undo">
         <button onclick="voltarPendente('${x.id}')">↩︎ Voltar para pendente</button></div>`}
     </div>`};});
