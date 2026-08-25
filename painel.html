@@ -1812,9 +1812,8 @@ function qnFillPhone(){
   if(c) el('qnPhone').value=c.phone;
 }
 function qnToggleForce(){
-  if(el('qnForce').checked && !el('qnOff').checked){
-    el('qnOff').checked=true; qnToggleOff();     // forçar exige digitar o horário livremente
-  }
+  // forçar precisa de horário digitado livremente: liga o campo aberto
+  if(el('qnForce').checked && !el('qnOff').checked){ el('qnOff').checked=true; qnToggleOff(); }
 }
 function qnToggleOff(){
   const off=el('qnOff').checked;
@@ -1870,11 +1869,11 @@ async function qnBook(){
     error=r.error;
   }
   if(error){
-    const m=error.message||'';
+    const m=error.message||error.hint||error.details||'';
     alert(/ocupado|já tem atendimento/i.test(m) ? 'Esse barbeiro já tem atendimento nesse horário.'
         : /bloqueado/i.test(m) ? 'Esse horário está bloqueado para o barbeiro.'
-        : /janela|passado/i.test(m) ? m
-        : 'Não foi possível agendar.');
+        : /janela|passado|antiga|Duração|Serviço|permissão|agenda/i.test(m) ? m
+        : ('Não foi possível agendar.' + (m ? '\n\nMotivo: ' + m : '')));
     if(!off) qnReloadSlots();
     return;
   }
@@ -1988,6 +1987,19 @@ async function abrirAvisos(){
 
 boot();
 </script>
-<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');</script>
+<script>if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').then(reg=>{
+    reg.update();
+    setInterval(()=>reg.update(), 60*60*1000);
+    reg.addEventListener('updatefound',()=>{
+      const nv=reg.installing; if(!nv) return;
+      nv.addEventListener('statechange',()=>{
+        if(nv.state==='installed' && navigator.serviceWorker.controller){
+          if(confirm('Tem uma versão nova do painel.\n\nAtualizar agora?')) location.reload();
+        }
+      });
+    });
+  });
+}</script>
 </body>
 </html>

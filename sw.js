@@ -1,7 +1,11 @@
 // VH Barbershop — service worker (rede primeiro; cache só como reserva offline)
-const C='vh-v3';
+const C='vh-v4';
 self.addEventListener('install',e=>self.skipWaiting());
-self.addEventListener('activate',e=>e.waitUntil(clients.claim()));
+self.addEventListener('activate',e=>e.waitUntil((async()=>{
+  const ks=await caches.keys();
+  await Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)));
+  await clients.claim();
+})()));
 self.addEventListener('fetch',e=>{
   if(e.request.mode==='navigate'){
     e.respondWith(
