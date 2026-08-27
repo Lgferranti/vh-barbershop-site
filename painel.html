@@ -505,13 +505,11 @@
           <option value="12">Toda semana · 12 semanas</option>
           <option value="26">Toda semana · 6 meses</option>
         </select></div>
-        <label class="qtog"><input type="checkbox" id="qnOff" onchange="qnToggleOff()">
-          <span>Encaixe <b>fora do expediente</b> — o cliente não vê esse horário no app</span></label>
-        <label class="qtog"><input type="checkbox" id="qnForce" onchange="qnToggleForce()">
-          <span>Forçar <b>por cima de outro atendimento</b> — para quando você vai terminar antes</span></label>
-        <div class="qwarn" id="qnWarn">Horário livre das 05h às 00h — pode ser um horário que já passou, para registrar atendimento feito. O sistema ainda impede choque com outro atendimento.</div>
-        <div class="qrow" id="qnTimeRow"><label>Horário</label><select id="qnTime"></select></div>
-        <div class="qrow" id="qnFreeRow" style="display:none"><label>Horário do encaixe</label><input id="qnFree" type="time" step="300" min="05:00"></div>
+        <input type="checkbox" id="qnOff" checked style="display:none">
+        <input type="checkbox" id="qnForce" checked style="display:none">
+        <div class="qwarn on" id="qnWarn">Você marca no horário que quiser. Se o tempo do serviço invadir o próximo cliente, o sistema encurta sozinho para caber (ex.: 16:40 com cliente às 17:00 vira 20 min).</div>
+        <div class="qrow" id="qnTimeRow" style="display:none"><label>Horário</label><select id="qnTime"></select></div>
+        <div class="qrow" id="qnFreeRow"><label>Horário</label><input id="qnFree" type="time" step="300"></div>
         <div class="qrow"><label>Cliente</label><input id="qnName" list="knownClients" placeholder="Nome do cliente" autocomplete="off" oninput="qnFillPhone()"><datalist id="knownClients"></datalist></div>
         <div class="qrow"><label>WhatsApp</label><input id="qnPhone" placeholder="(17) 9 9999-9999"></div>
         <button class="confirmclose" style="width:100%" onclick="qnBook()">Confirmar agendamento</button>
@@ -1277,7 +1275,6 @@ function acaoAgendar(){
   el('qBlock').style.display='none';
   el('qNew').style.display='block';
   if(el('qnBarber').options.length) el('qnBarber').value=bid;
-  el('qnOff').checked=true; el('qnForce').checked=false; qnToggleOff();
   el('qnFree').value=hhmmMin(ACAO.min);
   el('qnName').value=''; el('qnPhone').value='';
   el('qNew').scrollIntoView({behavior:'smooth',block:'center'});
@@ -1811,17 +1808,8 @@ function qnFillPhone(){
   const c=CLIENTS.find(x=>x.name===el('qnName').value);
   if(c) el('qnPhone').value=c.phone;
 }
-function qnToggleForce(){
-  // forçar precisa de horário digitado livremente: liga o campo aberto
-  if(el('qnForce').checked && !el('qnOff').checked){ el('qnOff').checked=true; qnToggleOff(); }
-}
-function qnToggleOff(){
-  const off=el('qnOff').checked;
-  el('qnTimeRow').style.display = off?'none':'block';
-  el('qnFreeRow').style.display = off?'block':'none';
-  el('qnWarn').classList.toggle('on',off);
-  if(!off) qnReloadSlots();
-}
+function qnToggleForce(){ /* painel nunca bloqueia */ }
+function qnToggleOff(){ /* painel usa sempre horário livre */ }
 async function qnBook(){
   const off=el('qnOff').checked;
   const name=el('qnName').value.trim(), phone=el('qnPhone').value.trim();
@@ -1830,13 +1818,7 @@ async function qnBook(){
     const hm=el('qnFree').value;
     if(!hm){alert('Digite o horário do encaixe.');return;}
     const [h,m]=hm.split(':').map(Number);
-    if(h<5){alert('Encaixes só das 05h às 00h.');return;}
     const d=new Date(dateFor(sel)); d.setHours(h,m,0,0);
-    if(d<new Date()){
-      const lim=new Date(Date.now()-30*86400000);
-      if(d<lim){ alert('Essa data é muito antiga (limite de 30 dias). Confira o dia escolhido.'); return; }
-      if(!confirm(`Esse horário já passou (${pad(d.getDate())}/${pad(d.getMonth()+1)} às ${hhmmMin(h*60+m)}).\n\nRegistrar mesmo assim? Use para lançar um atendimento que já aconteceu.`)) return;
-    }
     iso=d.toISOString();
   } else {
     iso=el('qnTime').value;
@@ -1850,8 +1832,8 @@ async function qnBook(){
   const durEscolhida=()=>{ const v=(el('qnDur').value||'').trim(); if(v==='') return null;
     const n=Math.round(Number(v)); return (isFinite(n)&&n>=5&&n<=480)?n:null; };
   const forcar=el('qnForce').checked;
-  if(forcar && !confirm('Encaixar por cima de outro atendimento?\n\nOs dois vão aparecer no mesmo horário na agenda.')) return;
-  if(ids.length>1 || rep>1 || off || forcar || durEscolhida()!=null){
+
+  {
     const r=await sb.rpc('book_staff_multi',{p_barber_id:el('qnBarber').value,p_service_ids:ids,
       p_start:iso,p_customer_name:name,p_customer_phone:phone,p_repeat_weeks:rep,p_force:forcar,
       p_duration_min:durEscolhida()});
@@ -1863,10 +1845,6 @@ async function qnBook(){
               (pul.length?`\n\nPulei ${pul.length} data(s) por conflito ou dia fechado:\n${pul.join(', ')}`:''));
       }
     }
-  } else {
-    const r=await sb.rpc('book_appointment',{p_barber_id:el('qnBarber').value,p_service_id:ids[0],
-      p_start:iso,p_customer_name:name,p_customer_phone:phone});
-    error=r.error;
   }
   if(error){
     const m=error.message||error.hint||error.details||'';
@@ -1880,8 +1858,8 @@ async function qnBook(){
   if(!CLIENTS.find(x=>x.name===name)){CLIENTS.unshift({name,phone});
     el('knownClients').innerHTML=CLIENTS.map(c=>`<option value="${c.name.replace(/"/g,'&quot;')}">${c.phone}</option>`).join('');}
   el('qnName').value='';el('qnPhone').value='';
-  el('qnOff').checked=false; el('qnForce').checked=false; el('qnRepeat').value='1';
-  el('qnDur').value=''; delete el('qnDur').dataset.tocado; qnToggleOff();
+  el('qnRepeat').value='1'; el('qnFree').value='';
+  el('qnDur').value=''; delete el('qnDur').dataset.tocado;
   toggleQ('qNew');renderAgenda();reloadClients();
 }
 async function qbReloadSlots(){
