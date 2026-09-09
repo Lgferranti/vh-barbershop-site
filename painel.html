@@ -644,7 +644,29 @@ if(SB_URL.includes('COLE_AQUI') || SB_KEY.includes('COLE_AQUI')){
   throw new Error('Supabase não configurado');
 }
 
-const sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+/* iOS/PWA: ao voltar do segundo plano a 1ª conexão costuma falhar ("Load failed").
+   Este fetch tenta de novo sozinho, então o usuário não precisa apertar várias vezes. */
+async function fetchTeimoso(input, init){
+  const tentativas = 4;
+  let ultimo;
+  for(let i=0; i<tentativas; i++){
+    try{
+      const ctrl = new AbortController();
+      const limite = setTimeout(()=>ctrl.abort(), 15000);
+      const r = await fetch(input, Object.assign({}, init, {signal: ctrl.signal, cache:'no-store'}));
+      clearTimeout(limite);
+      if(r.status >= 500 && i < tentativas-1){ await new Promise(s=>setTimeout(s, 400*(i+1))); continue; }
+      return r;
+    }catch(e){
+      ultimo = e;
+      if(i === tentativas-1) break;
+      await new Promise(s=>setTimeout(s, 400*(i+1)));   // 0,4s · 0,8s · 1,2s
+    }
+  }
+  throw ultimo;
+}
+const sb = window.supabase.createClient(SB_URL, SB_KEY, {global:{fetch: fetchTeimoso}});
 
 const el=id=>document.getElementById(id);
 const pad=n=>String(n).padStart(2,'0');
@@ -1810,7 +1832,9 @@ function qnFillPhone(){
 }
 function qnToggleForce(){ /* painel nunca bloqueia */ }
 function qnToggleOff(){ /* painel usa sempre horário livre */ }
+let qnEnviando=false;
 async function qnBook(){
+  if(qnEnviando) return;
   const off=el('qnOff').checked;
   const name=el('qnName').value.trim(), phone=el('qnPhone').value.trim();
   let iso;
@@ -1833,10 +1857,14 @@ async function qnBook(){
     const n=Math.round(Number(v)); return (isFinite(n)&&n>=5&&n<=480)?n:null; };
   const forcar=el('qnForce').checked;
 
+  const btn=[...document.querySelectorAll('#qNew .confirmclose')][0];
+  qnEnviando=true;
+  if(btn){ btn.dataset.txt=btn.textContent; btn.textContent='Marcando…'; btn.style.opacity='.6'; }
+  const liberar=()=>{ qnEnviando=false; if(btn){ btn.textContent=btn.dataset.txt||'Confirmar agendamento'; btn.style.opacity='1'; } };
   {
     const r=await sb.rpc('book_staff_multi',{p_barber_id:el('qnBarber').value,p_service_ids:ids,
       p_start:iso,p_customer_name:name,p_customer_phone:phone,p_repeat_weeks:rep,p_force:forcar,
-      p_duration_min:durEscolhida()});
+      p_duration_min:durEscolhida()}).catch(e=>({error:e}));
     error=r.error;
     if(!error){
       const d=r.data||{}; const pul=(d.pulados||[]);
@@ -1846,9 +1874,12 @@ async function qnBook(){
       }
     }
   }
+  liberar();
   if(error){
     const m=error.message||error.hint||error.details||'';
-    alert(/ocupado|já tem atendimento/i.test(m) ? 'Esse barbeiro já tem atendimento nesse horário.'
+    alert(/Load failed|Failed to fetch|NetworkError|abort/i.test(m)
+          ? 'Sem conexão no momento. Confira a internet e toque em Confirmar de novo.'
+        : /ocupado|já tem atendimento/i.test(m) ? 'Esse barbeiro já tem atendimento nesse horário.'
         : /bloqueado/i.test(m) ? 'Esse horário está bloqueado para o barbeiro.'
         : /janela|passado|antiga|Duração|Serviço|permissão|agenda/i.test(m) ? m
         : ('Não foi possível agendar.' + (m ? '\n\nMotivo: ' + m : '')));

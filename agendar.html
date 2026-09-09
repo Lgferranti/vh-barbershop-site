@@ -376,7 +376,29 @@ if(SB_URL.includes('COLE_AQUI') || SB_KEY.includes('COLE_AQUI')){
   throw new Error('Supabase não configurado');
 }
 
-const sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+/* iOS/PWA: ao voltar do segundo plano a 1ª conexão costuma falhar ("Load failed").
+   Este fetch tenta de novo sozinho, então o usuário não precisa apertar várias vezes. */
+async function fetchTeimoso(input, init){
+  const tentativas = 4;
+  let ultimo;
+  for(let i=0; i<tentativas; i++){
+    try{
+      const ctrl = new AbortController();
+      const limite = setTimeout(()=>ctrl.abort(), 15000);
+      const r = await fetch(input, Object.assign({}, init, {signal: ctrl.signal, cache:'no-store'}));
+      clearTimeout(limite);
+      if(r.status >= 500 && i < tentativas-1){ await new Promise(s=>setTimeout(s, 400*(i+1))); continue; }
+      return r;
+    }catch(e){
+      ultimo = e;
+      if(i === tentativas-1) break;
+      await new Promise(s=>setTimeout(s, 400*(i+1)));   // 0,4s · 0,8s · 1,2s
+    }
+  }
+  throw ultimo;
+}
+const sb = window.supabase.createClient(SB_URL, SB_KEY, {global:{fetch: fetchTeimoso}});
 
 const el = id => document.getElementById(id);
 const pad = n => String(n).padStart(2,'0');
