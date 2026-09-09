@@ -1861,10 +1861,10 @@ async function qnBook(){
   qnEnviando=true;
   if(btn){ btn.dataset.txt=btn.textContent; btn.textContent='Marcando…'; btn.style.opacity='.6'; }
   const liberar=()=>{ qnEnviando=false; if(btn){ btn.textContent=btn.dataset.txt||'Confirmar agendamento'; btn.style.opacity='1'; } };
-  {
+  try{
     const r=await sb.rpc('book_staff_multi',{p_barber_id:el('qnBarber').value,p_service_ids:ids,
       p_start:iso,p_customer_name:name,p_customer_phone:phone,p_repeat_weeks:rep,p_force:forcar,
-      p_duration_min:durEscolhida()}).catch(e=>({error:e}));
+      p_duration_min:durEscolhida()});
     error=r.error;
     if(!error){
       const d=r.data||{}; const pul=(d.pulados||[]);
@@ -1873,8 +1873,11 @@ async function qnBook(){
               (pul.length?`\n\nPulei ${pul.length} data(s) por conflito ou dia fechado:\n${pul.join(', ')}`:''));
       }
     }
+  }catch(e){
+    error = e;
+  }finally{
+    liberar();          // o botão SEMPRE volta ao normal, dê no que der
   }
-  liberar();
   if(error){
     const m=error.message||error.hint||error.details||'';
     alert(/Load failed|Failed to fetch|NetworkError|abort/i.test(m)
